@@ -14,453 +14,351 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
   <style>
-    /* ==========================================================================
-       1. โครงสร้างหลักของหน้าเว็บและกรอบนอก (Layout & Global Elements)
-       ========================================================================== */
     html, body {
       background-color: #f8fafc; 
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
-      overflow: hidden; 
       font-family: 'Mitr', sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      overflow: hidden;
     }
-
     .app-container {
       width: 100%;
-      max-width: 412px;  
-      height: 100dvh; 
+      max-width: 430px;
+      height: 100dvh;
       background-color: #ffffff;
-      display: flex;
-      flex-direction: column;
+      box-shadow: 0 0 20px rgba(0,0,0,0.05);
       position: relative;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-      overflow: hidden;  
-      box-sizing: border-box;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    /* ==========================================================================
-       2. โครงสร้างหน้าจอหลักแต่ละหน้า (Views Layout)
-       ========================================================================== */
-    #view-login {
-      height: 100% !important;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-      padding: 40px 24px;
-      box-sizing: border-box;
+      overflow: hidden;
     }
-
-    #view-trips {
-      background-color: #ffffff !important; 
+    .view-zone {
       flex: 1;
-      display: flex;
+      display: none;
       flex-direction: column;
+      overflow: hidden;
+      width: 100%;
       height: 100%;
-      overflow: hidden;
-      box-sizing: border-box;
     }
-
-    #view-dashboard {
+    .scrollable-content {
       flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 90px;
+    }
+    .bottom-navbar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background-color: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 40;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .nav-item {
       display: flex;
       flex-direction: column;
-      height: 100%;
-      overflow: hidden;
-      box-sizing: border-box;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 600;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-
-    /* ==========================================================================
-       3. โครงสร้างระบบสกรอลล์เลื่อนหน้าจอภายใน (🔒 FIXED SCROLL SYSTEM)
-       ========================================================================== */
-    #trips-list-container {
-      flex: 1;
-      overflow-y: auto !important;
-      padding: 16px;
-      padding-bottom: 40px;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    #sub-view-itinerary {
-      flex: 1 !important;
-      display: flex;
-      flex-direction: column;
-      height: calc(100% - 65px) !important; 
-      overflow: hidden !important; 
-      padding: 16px;
-      box-sizing: border-box;
-    }
-
-    #itinerary-timeline {
-      flex: 1 !important;
-      overflow-y: auto !important; 
-      padding-right: 4px;
-      padding-bottom: 40px;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    #sub-view-expenses {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      height: calc(100% - 65px); 
-      overflow: hidden;
-      padding: 14px;
-      padding-bottom: 0;
-      box-sizing: border-box;
-    }
-
-    #tab1-list-container,
-    #tab2-list-container,
-    #tab3-list-container,
-    #tab4-list-container {
-      flex: 1 !important;
-      overflow-y: auto !important;
-      margin-top: 8px;
-      padding-bottom: 80px; 
-      scrollbar-width: none; 
-      -webkit-overflow-scrolling: touch;
-    }
-
-    #tab1-list-container::-webkit-scrollbar,
-    #tab2-list-container::-webkit-scrollbar,
-    #tab3-list-container::-webkit-scrollbar,
-    #tab4-list-container::-webkit-scrollbar {
-      display: none; 
-    }
-
-    /* ==========================================================================
-       4. UI การ์ดและกลุ่มดีไซน์ตกแต่ง
-       ========================================================================== */
-    .tabs-boxed .tab-active {
-      background-color: #570df8 !important;
-      color: #ffffff !important;
-    }
-
+    .nav-item.active { color: #6366f1; }
+    .nav-item i { font-size: 18px; margin-bottom: 3px; }
+    .timeline-container { position: relative; padding-left: 20px; border-l: 2px solid #e2e8f0; }
+    .shadow-3xs { box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
     .tab2-action-group {
+      background-color: #f1f5f9;
+      padding: 6px 12px;
       display: flex;
       justify-content: flex-end;
       align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      background-color: #f8fafc;
-      border-top: 1px dashed #e2e8f0;
-      margin-top: 8px;
+      gap: 6px;
+      border-t: 1px solid #e2e8f0;
     }
-
-    #itinerary-day-tabs-bar {
+    
+    /* 🎯 ปลดล็อกสิทธิ์ CSS ให้กล่องการเงินชั้นนอกยอมให้มีการเลื่อน Scroll ไถหน้าจอแนวตั้ง */
+    #sub-view-expenses {
+      flex: 1;
+      overflow-y: auto !important;
       display: flex;
-      gap: 8px;
-      overflow-x: auto !important;
-      padding-bottom: 8px;
-      margin-bottom: 12px;
-      width: 100%;
-      scrollbar-width: none;
+      flex-direction: column;
     }
-    #itinerary-day-tabs-bar::-webkit-scrollbar {
-      display: none;
+    .financial-tab-list-zone {
+      max-height: calc(100vh - 270px) !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 20px;
     }
   </style>
 </head>
-<body>
+<body class="flex justify-center items-center">
 
-  <div class="app-container shadow-2xl">
-    <div id="view-login" class="w-full bg-white hidden">
-      <div class="text-center mt-4">
-        <h1 class="text-4xl font-black text-slate-800 tracking-tight flex items-center justify-center gap-2">
-          <i class="fa-solid fa-plane-departure text-primary text-3xl"></i>
-          <span>TravelSync</span>
-        </h1>
-        <p class="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest">แอปพลิเคชันจัดการทริปและแบ่งบิลแยกประเภทเด็ดขาด</p>
-      </div>
-      <div class="w-full space-y-5 my-auto">
+  <div class="app-container">
+    
+    <div id="view-login" class="view-zone justify-center items-center px-8 bg-gradient-to-tr from-indigo-50 to-pink-50">
+      <div class="w-full max-w-sm text-center space-y-6">
+        <div>
+          <div class="w-20 h-20 bg-primary text-white text-3xl font-black rounded-3xl flex items-center justify-center mx-auto shadow-lg shadow-indigo-200">TS</div>
+          <h1 class="text-2xl font-black text-slate-800 mt-4 tracking-tight">TravelSync Core</h1>
+          <p class="text-xs text-slate-400 font-bold mt-1">ระบบบัญชีกลุ่มและปฏิทินแผนเดินทางแบบเรียลไทม์</p>
+        </div>
         <div class="form-control w-full">
-          <label class="label"><span class="label-text font-black text-slate-600 text-xs">เลือกชื่อผู้ใช้งานของคุณ</span></label>
-          <select id="login-user-select" class="select select-bordered w-full font-bold text-slate-800 bg-slate-50 border-2 rounded-xl focus:outline-none focus:border-primary">
-            <option value="" disabled selected>⏳ กำลังโหลดรายชื่อผู้ใช้...</option>
+          <label class="label"><span class="label-text font-black text-slate-600 text-xs">เลือกผู้ใช้งานระบุตัวตน</span></label>
+          <select id="login-user-select" class="select select-bordered w-full font-bold text-sm bg-white rounded-xl shadow-3xs">
+            <option value="" disabled selected>กำลังดาวน์โหลดรายชื่อสมาชิก...</option>
           </select>
         </div>
-        <div class="form-control w-full">
-          <label class="label"><span class="label-text font-black text-slate-600 text-xs">ระบุรหัสส่วนตัวความปลอดภัย (PIN)</span></label>
-          <input type="password" id="login-user-pin" placeholder="••••" maxlength="4" class="input input-bordered w-full text-center text-xl font-black tracking-widest text-slate-800 bg-slate-50 border-2 rounded-xl focus:outline-none focus:border-primary">
-        </div>
-        <button onclick="handleUserLoginSubmit()" class="btn btn-primary w-full text-sm font-black text-white rounded-2xl shadow-md h-12 min-h-0 bg-gradient-to-r from-primary to-indigo-600 border-0 hover:opacity-90 mt-2">
-          เข้าสู่หน้าแอปพลิเคชัน 🚀
-        </button>
-      </div>
-      <div class="text-center pt-4 border-t border-slate-100 w-full">
-        <span class="text-[11px] font-bold text-slate-300">หรือผู้ใช้ใหม่</span>
-        <button onclick="openBottomSheet('modal-register-user')" class="btn btn-outline btn-sm w-full mt-2 font-black text-secondary rounded-xl border-2 hover:bg-secondary hover:text-white text-[11px] h-9 min-h-0">
-          สมัครสร้างโปรไฟล์ใหม่ ✨
-        </button>
+        <button onclick="handleLoginSubmit()" class="btn btn-primary w-full text-white font-black rounded-xl shadow-md">เข้าสู่ระบบใช้งาน ➔</button>
       </div>
     </div>
 
-    <div id="view-trips" class="w-full hidden">
-      <div class="bg-white px-4 pt-5 pb-3 border-b border-slate-100 shrink-0 flex justify-between items-center">
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center text-primary text-lg"><i class="fa-solid fa-compass"></i></div>
+    <div id="view-trips" class="view-zone">
+      <div class="px-5 pt-6 pb-4 border-b border-slate-100 shrink-0 flex justify-between items-center bg-white">
+        <div>
+          <span class="text-[10px] font-black uppercase text-primary tracking-wider block">TravelSync</span>
+          <h2 class="text-xl font-black text-slate-800 tracking-tight">กล่องตารางทริปของคุณ</h2>
+        </div>
+        <button onclick="document.getElementById('add-trip-modal').showModal()" class="btn btn-sm btn-primary text-white font-black rounded-xl px-3">+ สร้างทริปใหม่</button>
+      </div>
+      <div id="trips-grid-list" class="scrollable-content px-5 pt-4 space-y-4">
+        </div>
+    </div>
+
+    <div id="view-dashboard" class="view-zone bg-slate-50">
+      <div class="px-5 pt-5 pb-3 bg-white border-b border-slate-100 shrink-0 relative z-10">
+        <div class="flex justify-between items-start">
+          <div class="min-w-0">
+            <button onclick="backToTrips()" class="text-xs text-primary font-black flex items-center gap-1 mb-1"><i class="fa-solid fa-chevron-left text-[10px]"></i> กลับหน้ารวมทริป</button>
+            <h3 id="dash-trip-title" class="text-lg font-black text-slate-800 truncate tracking-tight">คลังระบบทริป</h3>
+          </div>
+          <div id="user-avatar-badge" class="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-full text-xs font-bold border">
+            </div>
+        </div>
+        
+        <div id="host-approval-box" class="hidden mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+          <span class="text-[11px] font-black text-amber-800 flex items-center gap-1"><i class="fa-solid fa-circle-exclamation"></i> คำขอเข้าร่วมกลุ่มทริปที่รอการอนุมัติ</span>
+          <div id="pending-members-list" class="space-y-1.5"></div>
+        </div>
+      </div>
+
+      <div id="sub-view-itinerary" class="flex-1 flex flex-col overflow-hidden w-full">
+        <div class="bg-white px-5 py-3 border-b border-slate-100 shrink-0 flex items-center gap-2 overflow-x-auto w-full" id="itinerary-day-tabs-bar" style="scrollbar-width:none;">
+          </div>
+        <div class="flex-1 overflow-y-auto px-5 pt-4 pb-24 -webkit-overflow-scrolling: touch;">
+          <div class="timeline-container ml-2.5" id="itinerary-timeline">
+            </div>
+        </div>
+        <button onclick="openAddItineraryModal()" class="btn btn-primary text-white font-black fixed bottom-20 right-5 z-40 rounded-full w-12 h-12 shadow-lg flex items-center justify-center border-0"><i class="fa-solid fa-plus text-base"></i></button>
+      </div>
+
+      <div id="sub-view-expenses" class="hidden">
+        <div class="px-5 pt-4 pb-3 bg-white border-b shrink-0 flex justify-between items-center">
           <div>
-            <span id="current-user-badge" class="badge badge-outline text-[10px] font-black px-2 py-2">👤 Loading...</span>
-            <h2 class="text-lg font-black text-slate-800 tracking-tight mt-0.5">ทริปของกลุ่มทัวร์</h2>
+            <span class="text-[10px] text-slate-400 font-black block">รวมเงินสดทริปสะสม</span>
+            <div id="cost-total-display" class="text-xl font-black text-slate-800">฿0.00 บาท</div>
+          </div>
+          <div class="flex gap-1">
+            <button onclick="openAddBillModal()" class="btn btn-sm btn-primary text-white font-black rounded-xl px-2.5 text-xs">+ ลงบิล</button>
+            <button onclick="openAddDepositModal()" class="btn btn-sm bg-slate-800 text-white hover:bg-slate-900 font-black rounded-xl px-2.5 text-xs">+ มัดจำ</button>
           </div>
         </div>
-        <div class="flex gap-2">
-          <button onclick="backToLogin()" class="btn btn-xs btn-outline font-black rounded-lg px-2"><i class="fa-solid fa-arrow-right-from-bracket"></i> ออก</button>
-          <button onclick="openBottomSheet('modal-add-trip')" class="btn btn-sm btn-circle btn-primary text-white shadow-md flex items-center justify-center w-9 h-9 min-h-0"><i class="fa-solid fa-plus text-base"></i></button>
+        
+        <div class="tabs tabs-boxed bg-white border-b rounded-none px-4 py-2 flex justify-between shrink-0">
+          <button onclick="switchFinancialTab(1)" id="f-tab-btn-1" class="tab tab-active flex-1 font-black text-[11px] rounded-xl">🧾 บิลทั่วไป</button>
+          <button onclick="switchFinancialTab(2)" id="f-tab-btn-2" class="tab flex-1 font-black text-[11px] rounded-xl">🏨 มัดจำกลุ่ม</button>
+          <button onclick="switchFinancialTab(3)" id="f-tab-btn-3" class="tab flex-1 font-black text-[11px] rounded-xl">🤝 คิวเคลียร์หนี้</button>
+          <button onclick="switchFinancialTab(4)" id="f-tab-btn-4" class="tab flex-1 font-black text-[11px] rounded-xl">📊 รายงานรวม</button>
+        </div>
+
+        <div class="flex-1 px-4 pt-3 financial-tab-list-zone">
+          <div id="tab1-list-container" class="w-full"></div>
+          <div id="tab2-list-container" class="w-full hidden"></div>
+          <div id="tab3-list-container" class="w-full hidden space-y-3"></div>
+          <div id="tab4-list-container" class="w-full hidden space-y-2"></div>
         </div>
       </div>
-      <div id="trips-list-container" class="space-y-3"></div>
+
     </div>
 
-    <div id="view-dashboard" class="w-full hidden relative">
-      <div class="bg-white px-4 pt-4 pb-3 border-b border-slate-100 shrink-0 flex items-center gap-2">
-        <button onclick="backToTrips()" class="btn btn-sm btn-circle bg-slate-100 text-slate-600 border-0 hover:bg-slate-200 shadow-3xs flex items-center justify-center w-8 h-8 min-h-0"><i class="fa-solid fa-arrow-left text-xs"></i></button>
-        <div class="min-w-0 flex-1">
-          <h2 id="dash-trip-title" class="text-base font-black text-slate-800 truncate">แดชบอร์ดข้อมูลทริป</h2>
-          <span class="text-[10px] text-slate-400 font-bold block truncate mt-0.5">TravelSync Core Finance Center</span>
-        </div>
-      </div>
-      <div id="host-approval-box" class="bg-amber-50 border-b border-amber-200 p-3 shrink-0 hidden space-y-2">
-        <div class="text-[10px] font-black text-amber-800 uppercase tracking-wider flex items-center gap-1">
-          <i class="fa-solid fa-shield-halved text-amber-600"></i>คำขอเข้าร่วมทริปที่รออนุมัติ (Host Control):
-        </div>
-        <div id="pending-members-list" class="space-y-1.5 max-height-[120px] overflow-y-auto"></div>
-      </div>
-      <div class="flex-1 overflow-hidden relative">
-        <div id="sub-view-itinerary" class="hidden">
-          <div class="flex justify-between items-center mb-1 shrink-0">
-            <h3 class="text-sm font-black text-slate-800 flex items-center gap-1.5"><i class="fa-solid fa-map-location-dot text-slate-400"></i> แผนกิจกรรมทริป</h3>
-            <button onclick="openBottomSheet('modal-add-itinerary')" class="btn btn-xs btn-primary font-bold px-2 rounded-lg h-6 min-h-0 text-[10px]">+ เพิ่มแผน</button>
-          </div>
-          <div id="itinerary-day-tabs-bar" class="shrink-0"></div>
-          <div id="itinerary-timeline" class="relative border-l-2 border-slate-200 pl-4 ml-2 mt-4 space-y-4"></div>
-        </div>
-        <div id="sub-view-expenses" class="space-y-3 hidden">
-          <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-3.5 rounded-2xl text-center shadow-md shrink-0">
-            <div class="text-[10px] font-medium opacity-70 uppercase tracking-wider">ยอดรวมค่าใช้จ่ายทั้งทริป</div>
-            <div id="cost-total-display" class="text-2xl font-black mt-0.5 text-yellow-400">฿0.00 บาท</div>
-          </div>
-          <div class="tabs tabs-boxed bg-slate-100 p-1 flex h-11 shrink-0">
-            <button id="tab-btn-1" onclick="switchFinTab(1)" class="tab tab-active flex-1 text-[11px] font-black rounded-lg px-1 truncate">ค่าใช้จ่ายใหม่</button>
-            <button id="tab-btn-2" onclick="switchFinTab(2)" class="tab flex-1 text-[11px] font-black rounded-lg px-1 truncate" style="background-color:transparent !important; color:#475569 !important;">ค่าใช้จ่ายมัดจำ</button>
-            <button id="tab-btn-3" onclick="switchFinTab(3)" class="tab flex-1 text-[11px] font-black rounded-lg px-1 truncate" style="background-color:transparent !important; color:#475569 !important;">จัดการเงินมัดจำ</button>
-            <button id="tab-btn-4" onclick="switchFinTab(4)" class="tab flex-1 text-[11px] font-black rounded-lg px-1 truncate" style="background-color:transparent !important; color:#475569 !important;">สรุปรายบุคคล</button>
-          </div>
-          <div id="fin-content-1" class="hidden flex-1 flex flex-col min-height-0">
-            <div class="flex justify-between items-center mb-1 shrink-0">
-              <span class="text-[10px] text-slate-400 font-bold">ประวัติบิลทั่วไป (หารจบทันทีรายบิล)</span>
-              <button onclick="openBottomSheet('modal-add-tab1')" class="btn btn-xs btn-primary font-bold px-2 rounded-lg h-6 min-h-0 text-[10px]">+ บันทึกใหม่</button>
-            </div>
-            <div id="tab1-list-container"></div>
-          </div>
-          <div id="fin-content-2" class="hidden flex-1 flex flex-col min-height-0">
-            <div class="flex justify-between items-center mb-1 shrink-0">
-              <span class="text-[10px] text-slate-400 font-bold">ประวัติบิลมัดจำโครงการทริป</span>
-              <button onclick="buildTab2DynamicMembersForm(); openBottomSheet('modal-add-tab2-master');" class="btn btn-xs btn-secondary text-white font-bold px-2 rounded-lg h-6 min-h-0 text-[10px]">+ ตั้งบิลมัดจำใหม่</button>
-            </div>
-            <div id="tab2-list-container"></div>
-          </div>
-          <div id="fin-content-3" class="hidden flex-1 flex flex-col min-height-0">
-            <div class="mb-1 shrink-0"><span class="text-[10px] text-slate-400 font-bold">รายการจับคู่โอนเงินเพื่อเฉลี่ยเงินมัดจำล่วงหน้า</span></div>
-            <div id="tab3-list-container" class="space-y-3"></div>
-          </div>
-          <div id="fin-content-4" class="hidden flex-1 flex flex-col min-height-0">
-            <div class="mb-1 shrink-0"><span class="text-[10px] text-slate-400 font-bold">ยอดเงินสุทธิสะสมแยกรายคน (Real-time)</span></div>
-            <div id="tab4-list-container" class="space-y-2"></div>
-          </div>
-        </div> 
-      </div> 
-      <div id="app-bottom-navbar" class="absolute bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 grid grid-cols-2 z-40 shrink-0 hidden">
-        <button id="nav-btn-iti" onclick="switchMainTab('iti')" class="flex flex-col items-center justify-center text-primary transition-all bg-transparent border-0 outline-none">
-          <i class="fa-solid fa-calendar-days text-lg"></i>
-          <span class="text-[10px] font-black mt-0.5">แผนเดินทาง</span>
-        </button>
-        <button id="nav-btn-fin" onclick="switchMainTab('fin')" class="flex flex-col items-center justify-center text-slate-400 transition-all bg-transparent border-0 outline-none">
-          <i class="fa-solid fa-wallet text-lg"></i>
-          <span class="text-[10px] font-black mt-0.5">การเงินกลุ่ม</span>
-        </button>
-      </div>
-    </div> 
+    <div id="app-bottom-navbar" class="bottom-navbar hidden">
+      <div onclick="switchSubDashboardView('itinerary')" id="nav-btn-itinerary" class="nav-item active"><i class="fa-solid fa-calendar-day"></i>แผนเดินทาง</div>
+      <div onclick="switchSubDashboardView('expenses')" id="nav-btn-expenses" class="nav-item"><i class="fa-solid fa-wallet"></i>การเงินกลุ่ม</div>
+    </div>
+
   </div>
 
-  <div id="modal-register-user" onclick="closeBottomSheet('modal-register-user')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
-    <div onclick="event.stopPropagation()" class="bg-white w-full max-width-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
-      <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
-      <h3 class="text-base font-black text-slate-800">✨ สมัครสร้างโปรไฟล์ผู้ใช้ใหม่</h3>
-      <div class="space-y-3">
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ไอคอนประจำตัว (Emoji 1 ตัว)</span></label><input type="text" id="reg-user-icon" placeholder="🦊" maxlength="2" class="input input-bordered w-full bg-slate-50 font-bold text-center"></div>
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ชื่อเล่นภาษาอังกฤษ (ห้ามซ้ำ)</span></label><input type="text" id="reg-user-name" placeholder="Palmy" class="input input-bordered w-full bg-slate-50 font-bold"></div>
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ตั้งรหัสความปลอดภัย PIN (ตัวเลข 4 ตัว)</span></label><input type="password" id="reg-user-pin" placeholder="1234" maxlength="4" class="input input-bordered w-full bg-slate-50 text-center font-bold tracking-widest"></div>
-        <button onclick="handleRegisterUserSubmit()" class="btn btn-primary w-full font-black text-white rounded-xl mt-2 h-11 min-h-0">ลงทะเบียนสมาชิกใหม่ 🎯</button>
-      </div>
+  <dialog id="add-trip-modal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-white p-5 rounded-2xl">
+      <h3 class="font-black text-lg text-slate-800 mb-3">สร้างกลุ่มทริปท่องเที่ยวใหม่</h3>
+      <form id="add-trip-form" method="dialog" class="space-y-3" onsubmit="submitCreateTrip(event)">
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">ชื่อทริปการเดินทาง</span></label><input type="text" name="title" required class="input input-bordered bg-slate-50 rounded-xl text-sm" placeholder="เช่น ทริปตะลุยญี่ปุ่น 2026"></div>
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">ลิงก์รูปภาพหน้าปก (URL)</span></label><input type="url" name="coverUrl" class="input input-bordered bg-slate-50 rounded-xl text-sm" placeholder="ใส่ลิงก์รูปภาพสวยๆ (ถ้ามี)"></div>
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">คำอธิบายเพิ่มเติม</span></label><textarea name="desc" class="textarea textarea-bordered bg-slate-50 rounded-xl text-xs" placeholder="รายละเอียดข้อตกลงหรือคำชี้แจงสั้นๆ"></textarea></div>
+        <div class="modal-action mt-4"><button type="button" onclick="document.getElementById('add-trip-modal').close()" class="btn bg-slate-100 rounded-xl font-bold">ยกเลิก</button><button type="submit" class="btn btn-primary text-white rounded-xl font-black">สร้างทริปทันที ✨</button></div>
+      </form>
     </div>
-  </div>
+  </dialog>
 
-  <div id="modal-add-trip" onclick="closeBottomSheet('modal-add-trip')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
-    <div onclick="event.stopPropagation()" class="bg-white w-full max-width-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
-      <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
-      <h3 class="text-base font-black text-slate-800">🚀 สร้างทริปการเดินทางใหม่</h3>
-      <div class="space-y-3">
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ชื่อทริปการเดินทาง</span></label><input type="text" id="trip-title" placeholder="ทริปญี่ปุ่นหน้าร้อน 2026" class="input input-bordered w-full bg-slate-50 font-bold"></div>
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">คำอธิบาย/รายละเอียดทริปย่อ</span></label><input type="text" id="trip-desc" placeholder="5 วัน 4 คืน เที่ยวโตเกียว-ฟูจิ" class="input input-bordered w-full bg-slate-50 font-bold"></div>
-        <button onclick="handleCreateTrip(); closeBottomSheet('modal-add-trip');" class="btn btn-primary w-full font-black text-white rounded-xl mt-2 h-11 min-h-0">ยืนยันสร้างทริปกลุ่ม 🗺️</button>
-      </div>
+  <dialog id="add-iti-modal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-white p-5 rounded-2xl">
+      <h3 class="font-black text-lg text-slate-800 mb-3">เพิ่มปฏิทินกิจกรรมแผนเดินทาง</h3>
+      <form id="add-iti-form" method="dialog" class="space-y-3" onsubmit="submitAddItinerary(event)">
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">วันที่ทำกิจกรรม</span></label><input type="date" name="date" required class="input input-bordered bg-slate-50 rounded-xl text-sm"></div>
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">เวลาเริ่มต้น (เช่น 08:30)</span></label><input type="time" name="time" required class="input input-bordered bg-slate-50 rounded-xl text-sm"></div>
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">ชื่อกิจกรรม / แพลนงาน</span></label><input type="text" name="activity" required class="input input-bordered bg-slate-50 rounded-xl text-sm" placeholder="เช่น แวะกินข้าวร้านราเมงหน้าสถานี"></div>
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">ชื่อสถานที่เช็คอิน</span></label><input type="text" name="location" class="input input-bordered bg-slate-50 rounded-xl text-sm" placeholder="เช่น สถานีโตเกียว คอลัมน์ที่ 4"></div>
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">ลิงก์แผนที่ Google Maps URL</span></label><input type="url" name="mapUrl" class="input input-bordered bg-slate-50 rounded-xl text-sm" placeholder="วางลิงก์ปักหมุดแผนที่นำทาง"></div>
+        <div class="modal-action mt-4"><button type="button" onclick="document.getElementById('add-iti-modal').close()" class="btn bg-slate-100 rounded-xl font-bold">ยกเลิก</button><button type="submit" class="btn btn-primary text-white rounded-xl font-black">บันทึกลงปฏิทินทริป ⏰</button></div>
+      </form>
     </div>
-  </div>
+  </dialog>
 
-  <div id="modal-add-itinerary" onclick="closeBottomSheet('modal-add-itinerary')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
-    <div onclick="event.stopPropagation()" class="bg-white w-full max-width-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
-      <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
-      <h3 class="text-base font-black text-slate-800">📌 เพิ่มกิจกรรมลงบนแผนการเดินทาง</h3>
-      <div class="space-y-3">
-        <div class="grid grid-cols-2 gap-2">
-          <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ระบุวันที่</span></label><input type="date" id="iti-date" class="input input-bordered w-full bg-slate-50 font-bold text-xs px-2"></div>
-          <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ระบุเวลา น.</span></label><input type="time" id="iti-time" value="12:00" class="input input-bordered w-full bg-slate-50 font-bold text-center"></div>
-        </div>
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ชื่อกิจกรรม/สถานที่ท่องเที่ยว</span></label><input type="text" id="iti-act" placeholder="เช็คอินโรงแรม" class="input input-bordered w-full bg-slate-50 font-bold"></div>
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ชื่อสถานที่/ร้านค้า</span></label><input type="text" id="iti-loc" placeholder="โรงแรมเซ็นทรัล" class="input input-bordered w-full bg-slate-50 font-bold"></div>
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ลิงก์แผนที่ Google Maps</span></label><input type="url" id="iti-map" placeholder="http://maps.google.com/..." class="input input-bordered w-full bg-slate-50 font-bold text-xs"></div>
-        <button onclick="handleRegisterItinerary()" class="btn btn-primary w-full font-black text-white rounded-xl mt-2 h-11 min-h-0">บันทึกลงปฏิทินทริป ⏰</button>
-      </div>
+  <dialog id="add-bill-modal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-white p-5 rounded-2xl">
+      <h3 class="font-black text-lg text-slate-800 mb-3">ลงบันทึกบิลค่าใช้จ่ายใหม่</h3>
+      <form id="add-bill-form" method="dialog" class="space-y-3" onsubmit="submitAddBill(event)">
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">จำนวนเงินรวมทั้งหมด (บาท)</span></label><input type="number" step="any" name="totalAmount" required class="input input-bordered bg-slate-50 rounded-xl font-black text-lg text-primary" placeholder="0.00"></div>
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">หมายเหตุบิลค่าใช้จ่าย</span></label><input type="text" name="note" required class="input input-bordered bg-slate-50 rounded-xl text-sm" placeholder="เช่น ค่าข้าวกลางวันมื้อแรก"></div>
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">หมวดหมู่ของบิล</span></label><select name="category" class="select select-bordered bg-slate-50 rounded-xl font-bold text-xs"><option>🍔 อาหารและเครื่องดื่ม</option><option>🚗 ค่ายานพาหนะเดินทาง</option><option>🎟️ ค่าตั๋วและกิจกรรม</option><option>🛍️ ช้อปปิ้งของฝาก</option><option>📦 อื่นๆ ทั่วไป</option></select></div>
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">ใครเป็นคนสำรองเงินจ่ายบิลนี้ก่อน?</span></label><select id="t1-payer-select" name="payerId" class="select select-bordered bg-slate-50 rounded-xl font-bold text-xs"></select></div>
+        
+        <div class="form-control"><label class="label"><span class="label-text font-black text-slate-700 text-xs">เลือกเพื่อนๆ สมาชิกที่ร่วมหารบิลนี้</span></label><div id="t1-members-checkbox-zone" class="bg-slate-50 border p-3 rounded-xl space-y-1 max-h-40 overflow-y-auto"></div></div>
+        
+        <div class="modal-action mt-4"><button type="button" onclick="document.getElementById('add-bill-modal').close()" class="btn bg-slate-100 rounded-xl font-bold">ปิดหน้าต่าง</button><button type="submit" class="btn btn-primary text-white rounded-xl font-black">ลงบันทึกบิลทันที 🧾</button></div>
+      </form>
     </div>
-  </div>
+  </dialog>
 
-  <div id="modal-add-tab1" onclick="closeBottomSheet('modal-add-tab1')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
-    <div onclick="event.stopPropagation()" class="bg-white w-full max-width-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl max-height-[85%] overflow-y-auto">
-      <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
-      <h3 class="text-base font-black text-slate-800">💰 ลงบันทึกค่าใช้จ่ายทั่วไป (รายบิล)</h3>
-      <div class="space-y-3">
-        <div class="grid grid-cols-2 gap-2">
-          <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ยอดเงินสดรวม (บาท)</span></label><input type="number" id="t1-amount" placeholder="250" class="input input-bordered w-full bg-slate-50 font-black text-slate-800 text-lg text-right"></div>
-          <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">หมวดหมู่</span></label><select id="t1-cat" class="select select-bordered w-full bg-slate-50 font-bold"><option value="🍱 อาหารและเครื่องดื่ม">🍱 อาหาร</option><option value="🚗 ค่าน้ำมัน/เดินทาง">🚗 การเดินทาง</option><option value="🏨 ค่าที่พัก/โรงแรม">🏨 ที่พัก</option><option value="🎟️ บัตรผ่าน/ตั๋วเที่ยว">🎟️ บัตรผ่านล่วงหน้า</option><option value="🛍️ ช้อปปิ้ง/ของฝาก">🛍️ ช้อปปิ้ง</option></select></div>
-        </div>
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ชื่อรายการ/หมายเหตุบิล</span></label><input type="text" id="t1-note" placeholder="ค่าข้าวเที่ยงวันแรก" class="input input-bordered w-full bg-slate-50 font-bold"></div>
-        <div class="form-control">
-          <label class="label"><span class="label-text text-xs font-black text-primary">🎯 ติ๊กเลือกสมาชิกที่ร่วมหารบิลเดี่ยวนี้:</span></label>
-          <div id="t1-members-checkbox-zone" class="space-y-1.5 max-height-[150px] overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-100"></div>
-        </div>
-        <button onclick="submitTab1Expense()" class="btn btn-primary w-full font-black text-white rounded-xl mt-2 h-11 min-h-0">ลงบันทึกบิลทันที 🧾</button>
-      </div>
+  <dialog id="add-deposit-modal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-white p-5 rounded-2xl">
+      <h3 class="font-black text-lg text-slate-800 mb-3">สร้างโครงการเงินมัดจำล่วงหน้า</h3>
+      <form id="add-deposit-form" method="dialog" class="space-y-3" onsubmit="submitAddDeposit(event)">
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">หมายเหตุชื่อโครงการมัดจำ</span></label><input type="text" name="note" required class="input input-bordered bg-slate-50 rounded-xl text-sm" placeholder="เช่น ค่ามัดจำที่พักโรงแรมโตเกียว"></div>
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">ราคาเต็มบิลจริงโดยประมาณ (บาท)</span></label><input type="number" step="any" name="fullCost" required class="input input-bordered bg-slate-50 rounded-xl text-sm" placeholder="คาดการณ์ยอดเงินจ่ายจริงวันจริง"></div>
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">หมวดหมู่มัดจำ</span></label><select name="category" class="select select-bordered bg-slate-50 rounded-xl font-bold text-xs"><option>🏨 ค่าที่พักและโรงแรม</option><option>🚗 ค่ามัดจำเช่ารถเดินทาง</option><option>🍱 ค่ามัดจำจองร้านอาหารพิเศษ</option></select></div>
+        
+        <div class="form-control"><label class="label"><span class="label-text font-black text-slate-700 text-xs">ระบุเงินมัดจำและคนร่วมหารรายบุคคล</span></label><div id="t2-members-input-zone" class="bg-slate-50 border p-3 rounded-xl space-y-2 max-h-44 overflow-y-auto"></div></div>
+        
+        <div class="modal-action mt-4"><button type="button" onclick="document.getElementById('add-deposit-modal').close()" class="btn bg-slate-100 rounded-xl font-bold">ยกเลิก</button><button type="submit" class="btn bg-slate-800 text-white rounded-xl font-black">สร้างโครงการมัดจำ 🏨</button></div>
+      </form>
     </div>
-  </div>
+  </dialog>
 
-  <div id="modal-add-tab2-master" onclick="closeBottomSheet('modal-add-tab2-master')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
-    <div onclick="event.stopPropagation()" class="bg-white w-full max-width-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl max-height-[85%] overflow-y-auto">
-      <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
-      <h3 class="text-base font-black text-slate-800">🏨 เปิดโครงการค่าใช้จ่ายที่มีการมัดจำ</h3>
-      <div class="space-y-3">
-        <div class="grid grid-cols-2 gap-2">
-          <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ราคาเต็มของบิล (บาท)</span></label><input type="number" id="t2-fullcost" placeholder="12000" class="input input-bordered w-full bg-slate-50 font-black text-right text-lg text-slate-800"></div>
-          <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">หมวดหมู่บิล</span></label><select id="t2-cat" class="select select-bordered w-full bg-slate-50 font-bold"><option value="🏨 ค่าที่พัก/โรงแรม">🏨 ที่พัก/โรงแรม</option><option value="🚗 ค่าน้ำมัน/เดินทาง">🚗 รถเช่า/เครื่องบิน</option></select></div>
-        </div>
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ชื่อโครงการ/รายละเอียดที่พัก</span></label><input type="text" id="t2-note" placeholder="มัดจำโรงแรม Araya" class="input input-bordered w-full bg-slate-50 font-bold"></div>
-        <div class="form-control">
-          <label class="label"><span class="label-text text-[11px] font-black text-secondary">💰 ระบุเงินมัดจำล่วงหน้าที่เคยโอนแยกรายคน:</span></label>
-          <div id="t2-deposit-members-injector" class="space-y-1.5 p-1 max-height-[180px] overflow-y-auto bg-slate-50 border border-slate-100 rounded-xl"></div>
-        </div>
-        <button onclick="submitTab2DepositMaster()" class="btn btn-secondary text-white w-full font-black rounded-xl mt-2 h-11 min-h-0">บันทึกตั้งโครงการมัดจำ 🔒</button>
-      </div>
+  <dialog id="final-payment-modal" class="modal modal-bottom sm:modal-middle">
+    <div class="modal-box bg-white p-5 rounded-2xl">
+      <h3 class="font-black text-lg text-slate-800 mb-2">อัพเดทยอดเงินสดหน้างานจริง</h3>
+      <p id="final-modal-desc" class="text-xs text-slate-400 font-bold mb-3"></p>
+      <form id="final-payment-form" method="dialog" class="space-y-3" onsubmit="submitFinalPayment(event)">
+        <input type="hidden" id="final-depId-hidden" name="depId">
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">จำนวนเงินรวมราคาเต็มหน้าบิล (บาท)</span></label><input type="number" step="any" id="final-fullCost-input" name="fullCost" required class="input input-bordered bg-slate-50 rounded-xl text-sm"></div>
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">หักลบมัดจำเดิมแล้ว วันนี้ต้องจ่ายเพิ่มอีกเท่าไหร่?</span></label><input type="number" step="any" id="final-paid-input" name="finalPaid" required class="input input-bordered bg-slate-50 rounded-xl font-black text-lg text-primary"></div>
+        <div class="form-control"><label class="label"><span class="label-text font-bold text-xs">ใครเป็นคนรูดบัตรจ่ายส่วนต่างหน้าร้านแทนกลุ่ม?</span></label><select id="t2-final-payer-select" name="finalPayerId" class="select select-bordered bg-slate-50 rounded-xl font-bold text-xs"></select></div>
+        <div class="modal-action mt-4"><button type="button" onclick="document.getElementById('final-payment-modal').close()" class="btn bg-slate-100 rounded-xl font-bold">ยกเลิก</button><button type="submit" class="btn btn-success text-white rounded-xl font-black">คำนวณตั้งแถวเคลียร์หนี้ 🚀</button></div>
+      </form>
     </div>
-  </div>
-
-  <div id="modal-add-tab2-final" onclick="closeBottomSheet('modal-add-tab2-final')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
-    <div onclick="event.stopPropagation()" class="bg-white w-full max-width-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
-      <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
-      <h3 class="text-base font-black text-slate-800">💸 อัพเดทการจ่ายเงินงวดสุดท้ายวันจริง</h3>
-      <p id="t2-final-info-label" class="text-[10px] text-slate-400 font-bold bg-slate-50 p-2.5 rounded-xl border border-dashed"></p>
-      <input type="hidden" id="t2-final-depid"><input type="hidden" id="t2-final-expected-paid">
-      <div class="space-y-3">
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ระบุบุคคลที่เป็นคนควักเงินสดจ่ายหน้างานจริง</span></label><select id="t2-final-payer-select" class="select select-bordered w-full bg-slate-50 font-bold text-slate-800"></select></div>
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ยืนยันยอดเงินสดคงค้างงวดสุดท้ายที่จ่ายจริง (บาท)</span></label><input type="number" id="t2-final-paid-input" class="input input-bordered w-full bg-slate-50 font-black text-right text-lg text-primary focus:outline-none"></div>
-        <button onclick="submitTab2FinalPayment()" class="btn btn-primary w-full font-black text-white rounded-xl mt-2 h-11 min-h-0">บันทึกผลจ่ายเงินสดหน้างาน 🏨</button>
-      </div>
-    </div>
-  </div>
+  </dialog>
 
   <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwXRGrA9yvLIsWxoAMKph-WSf13_nyZhTYbLFhLhiuuSVYl0DZz2zvRf_m0pasmk92g/exec";
-    let currentUser = null; let currentTripId = null;
-    let cachedUsers = []; let cachedActiveTripMembersList = [];
-    let globalItineraryDataCached = []; let activeSelectedDayDate = "";
-    let activeCurrentFinTabIdx = 1;
+    // 💡 พิกัดจุดเปลี่ยนลิงก์ยิงหลังบ้าน Web App URL ของคุณ Palm
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyv515LwT4n4N6305wZJbK9b3g5T9tJ1n-5n5b3b5b5/exec"; 
 
-    function callAPI(endpoint, method = 'GET', bodyData = null) {
-      const options = { method: method };
-      if (bodyData && method === 'POST') {
-        options.body = JSON.stringify(bodyData);
-        options.headers = { 'Content-Type': 'text/plain' };
+    let currentUser = null;
+    let currentTripId = null;
+    let cachedActiveTripMembersList = [];
+    let globalItineraryDataCached = [];
+    let activeSelectedDayDate = "";
+
+    window.addEventListener("load", () => {
+      initAppGlobalConfiguration();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then(() => console.log("PWA SW OK")).catch(err => console.log(err));
       }
-      return fetch(endpoint, options).then(res => res.json());
-    }
-
-    window.addEventListener("DOMContentLoaded", function() {
-      loadInitialUserData();
     });
 
-    function loadInitialUserData() {
-      callAPI(`${WEB_APP_URL}?action=getAllUsers`)
-        .then(usersList => {
-          cachedUsers = usersList || [];
-          const select = document.getElementById("login-user-select");
-          select.innerHTML = `<option value="" disabled selected>เลือกโปรไฟล์ผู้ใช้ของตนเอง</option>`;
-          cachedUsers.forEach(u => { select.innerHTML += `<option value="${u.id}">${u.icon || '👤'} ${u.name}</option>`; });
-          switchToView("view-login");
-        }).catch(err => { console.error(err); switchToView("view-login"); });
+    function initAppGlobalConfiguration() {
+      callAPI(`${WEB_APP_URL}?action=getAllUsers`).then(res => {
+        const select = document.getElementById("login-user-select");
+        if(select) {
+          select.innerHTML = `<option value="" disabled selected>เลือกชื่อโปรไฟล์ของคุณ...</option>`;
+          if(res && res.list) {
+            res.list.forEach(u => { select.innerHTML += `<option value="${u.id}">${u.icon} ${u.name}</option>`; });
+          }
+        }
+      });
     }
 
-    function handleUserLoginSubmit() {
+    function handleLoginSubmit() {
       const uId = document.getElementById("login-user-select").value;
-      const pin = document.getElementById("login-user-pin").value.trim();
-      if(!uId || !pin) return Swal.fire("แจ้งเตือน", "กรุณาเลือกชื่อและระบุ PIN ให้ครบถ้วน", "warning");
-
-      Swal.fire({ title: 'กำลังตรวจสอบสิทธิ์...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-      callAPI(WEB_APP_URL, 'POST', { action: "verifyUserPin", uId: uId, pin: pin })
-        .then(res => {
-          Swal.close();
-          if(res.success) {
-            currentUser = cachedUsers.find(u => u.id === uId);
-            document.getElementById("login-user-pin").value = ""; 
-            switchToView("view-trips"); 
-            renderTripsList();
-          } else { Swal.fire("ล้มเหลว", res.error || "รหัส PIN ไม่ถูกต้อง", "error"); }
-        });
+      if(!uId) return;
+      
+      callAPI(`${WEB_APP_URL}?action=getAllUsers`).then(res => {
+        const match = res.list.find(u => u.id === uId);
+        if(match) {
+          currentUser = match;
+          switchToView("view-trips");
+          renderTripsList();
+        }
+      });
     }
 
     function renderTripsList() {
-      if(!currentUser) return;
-      document.getElementById("current-user-badge").innerText = `${currentUser.name}`;
+      const grid = document.getElementById("trips-grid-list");
+      grid.innerHTML = `<div class="text-center py-8"><span class="loading loading-spinner text-primary"></span><p class="text-xs text-slate-400 font-bold mt-2">กำลังกวาดรายชื่อกลุ่มทริป...</p></div>`;
       
-      callAPI(`${WEB_APP_URL}?action=getAllTrips`).then(trips => {
-        const container = document.getElementById("trips-list-container");
-        container.innerHTML = "";
-        if(!trips || trips.length === 0) {
-          container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400 font-bold bg-white/60 rounded-2xl border border-dashed border-slate-300">ไม่พบคิวทริปท่องเที่ยวในฐานข้อมูล</div>`;
+      callAPI(`${WEB_APP_URL}?action=getAllTrips`).then(res => {
+        grid.innerHTML = "";
+        if(!res || !res.list || res.list.length === 0) {
+          grid.innerHTML = `<div class="text-center py-12 text-slate-400 font-bold text-xs border border-dashed rounded-2xl bg-slate-50">ไม่พบประวัติการเดินทาง สร้างทริปใหม่ได้ทันทีด้านบน</div>`;
           return;
         }
-        trips.forEach(t => {
-          container.innerHTML += `
-            <div class="card bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs">
-              <div class="flex justify-between items-start gap-2">
-                <div class="min-w-0 flex-1">
-                  <h4 class="font-black text-slate-800 text-base">🗺️ ${t.title}</h4>
-                  <p class="text-xs text-slate-400 font-bold truncate mt-0.5">${t.desc || 'ไม่มีคำอธิบาย'}</p>
+        res.list.forEach(t => {
+          grid.innerHTML += `
+            <div class="card bg-white border border-slate-200 overflow-hidden rounded-2xl shadow-3xs hover:shadow-md transition relative">
+              <figure class="h-32 w-full relative"><img src="${t.coverUrl}" class="w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div></figure>
+              <div class="p-4 absolute bottom-0 left-0 right-0 text-white flex justify-between items-end">
+                <div class="min-w-0 flex-1 pr-2"><h4 class="font-black text-lg truncate leading-tight">${t.title}</h4><p class="text-[10px] text-slate-200 truncate mt-0.5">${t.desc || 'ระบบตรวจสอบบัญชีเรียลไทม์'}</p></div>
+                <div class="flex gap-1 shrink-0 z-20">
+                  <button onclick="joinTripGroup('${t.id}')" class="btn btn-xs btn-outline border-white text-white font-bold hover:bg-white hover:text-black rounded-lg h-7 px-2.5">ขอเข้ากลุ่ม</button>
+                  <button onclick="enterTripDashboard('${t.id}')" class="btn btn-xs btn-primary text-white font-black rounded-lg h-7 px-3">เข้าสู่ทริป ➔</button>
                 </div>
-              </div>
-              <div class="flex justify-between items-center border-t border-slate-100 pt-3 mt-3">
-                <span class="text-[10px] text-slate-400 font-black">Trip ID: ${t.id}</span>
-                <button onclick="enterTripDashboard('${t.id}')" class="btn btn-sm btn-primary text-white text-xs font-black rounded-xl px-4 h-8 min-h-0">เข้าสู่ทริป ➔</button>
               </div>
             </div>`;
         });
+      });
+    }
+
+    function submitCreateTrip(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const payload = {
+        action: "createTrip", creatorId: currentUser.id,
+        title: fd.get("title"), coverUrl: fd.get("coverUrl"), desc: fd.get("desc")
+      };
+      
+      Swal.fire({ title: 'กำลังบันทึกทริป...', allowOutsideClick: false, didOpen:()=>Swal.showLoading() });
+      callAPI(WEB_APP_URL, 'POST', payload).then(res => {
+        Swal.close();
+        document.getElementById("add-trip-modal").close();
+        e.target.reset();
+        renderTripsList();
+      });
+    }
+
+    function joinTripGroup(tripId) {
+      Swal.fire({ title: 'กำลังยิงคำขอเข้ากลุ่ม...', allowOutsideClick: false, didOpen:()=>Swal.showLoading() });
+      callAPI(WEB_APP_URL, 'POST', { action: "joinTripRequest", tripId: tripId, userId: currentUser.id }).then(() => {
+        Swal.fire({ icon: 'success', title: 'ยิงคำขอสำเร็จแล้ว!', text: 'โปรดแจ้งให้ Host เจ้าของทริปกดอนุมัติผ่านแอปพลิเคชัน', timer: 2000, showConfirmButton: false });
       });
     }
 
@@ -470,9 +368,13 @@
       
       callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${tripId}`).then(data => {
         Swal.close();
-        if(!data) return; // 🎯 จุดที่ 3.1 แก้ไข: ปลดล็อกเงื่อนไขความสำเร็จ ป้องกันหน้าจอล็อกค้าง
+        if(!data) return; // 🎯 จุดที่ 3.1 แก้ไข: ปลดล็อกเงื่อนไขความสำเร็จให้พาเข้าแดชบอร์ดได้ทุกเคส
 
         document.getElementById("dash-trip-title").innerText = "ระบบบัญชีกลุ่มทริป";
+        
+        const badge = document.getElementById("user-avatar-badge");
+        if(badge) badge.innerHTML = `<span>${currentUser.icon}</span><span class="font-black text-slate-700 max-w-[70px] truncate">${currentUser.name}</span>`;
+        
         cachedActiveTripMembersList = data.members || [];
         globalItineraryDataCached = data.itinerary || [];
 
@@ -490,7 +392,7 @@
           } else { hostBox.classList.add("hidden"); }
         }
 
-        // 📅 จัดการแถบปุ่มเลือกสลับวันเดินทางประมวลผลอัตโนมัติ
+        // 📅 จัดการและสร้างแถบเลือกปุ่มวันเดินทางแบบเรียงอัตโนมัติ
         const tabsBar = document.getElementById("itinerary-day-tabs-bar");
         if (tabsBar) {
           tabsBar.innerHTML = "";
@@ -513,7 +415,7 @@
         }
         renderItineraryTimeline();
 
-        // ยอดรวมสะสมและการเงิน
+        // คำนวณยอดรวมสะสมการเงินทั้งหมด
         let safeTotalCost = 0;
         if (data.tab4Report && data.tab4Report.length > 0) {
           safeTotalCost = data.tab4Report.reduce((acc, curr) => acc + (isNaN(parseFloat(curr.paid)) ? 0 : parseFloat(curr.paid)), 0);
@@ -550,7 +452,7 @@
           }
         }
 
-        // 🏨 พ่นข้อมูลบิลโครงการมัดจำ (Tab 2)
+        // TAB 2 บิลโครงการมัดจำ
         const t2Container = document.getElementById("tab2-list-container"); 
         if (t2Container) {
           t2Container.innerHTML = "";
@@ -598,7 +500,7 @@
           }
         }
 
-        // TAB 4 รายงานสรุป
+        // TAB 4 รายงานสรุปการจ่ายเงิน
         const t4Container = document.getElementById("tab4-list-container"); 
         if(t4Container) {
           t4Container.innerHTML = "";
@@ -616,7 +518,7 @@
       let filtered = globalItineraryDataCached.filter(item => item.date === activeSelectedDayDate); 
       if(filtered.length === 0) { itiContainer.innerHTML = `<div class="text-slate-400 text-xs py-8 font-bold text-center bg-slate-50 border border-dashed rounded-xl">ไม่มีกิจกรรมในวันนี้ครับ</div>`; return; } 
       
-      // 🎯 จุดที่ 3.2 แก้ไข: เรียงลำดับเวลาอย่างปลอดภัย ป้องกันแอปพลิเคชันค้าง
+      // 🎯 จุดที่ 3.2 แก้ไข: สั่งรันเรียงลำดับเวลาอย่างปลอดภัย ป้องกันแอปพลิเคชันค้างล็อก
       filtered.sort((a, b) => {
         let timeA = a.time || "";
         let timeB = b.time || "";
@@ -638,142 +540,175 @@
       }); 
     }
 
-    function openBottomSheet(id) {
-      const el = document.getElementById(id); if(!el) return;
-      el.classList.remove("hidden");
-      setTimeout(() => {
-        el.classList.add("opacity-100"); el.classList.remove("opacity-0");
-        const body = el.querySelector("div"); if(body) body.classList.remove("translate-y-full");
-      }, 10);
+    function openAddItineraryModal() {
+      document.getElementById("add-iti-form").reset();
+      document.getElementById("add-iti-modal").showModal();
     }
 
-    function closeBottomSheet(id) {
-      const el = document.getElementById(id); if(!el) return;
-      const body = el.querySelector("div"); if(body) body.classList.add("translate-y-full");
-      el.classList.add("opacity-0"); el.classList.remove("opacity-100");
-      setTimeout(() => { el.classList.add("hidden"); }, 300);
+    function submitAddItinerary(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const payload = {
+        action: "addItinerary", tripId: currentTripId, date: fd.get("date"),
+        time: fd.get("time"), activity: fd.get("activity"), location: fd.get("location"), mapUrl: fd.get("mapUrl")
+      };
+      
+      Swal.fire({ title: 'กำลังบันทึกแผน...', allowOutsideClick: false, didOpen:()=>Swal.showLoading() });
+      callAPI(WEB_APP_URL, 'POST', payload).then(() => {
+        Swal.close();
+        document.getElementById("add-iti-modal").close();
+        enterTripDashboard(currentTripId);
+      });
     }
 
-    function switchMainTab(tabName) {
-      const btnIti = document.getElementById("nav-btn-iti"), btnFin = document.getElementById("nav-btn-fin"), viewIti = document.getElementById("sub-view-itinerary"), viewFin = document.getElementById("sub-view-expenses");
-      if(tabName === "iti") { 
-        btnIti.className = "flex flex-col items-center justify-center text-primary transition-all bg-transparent border-0 outline-none"; 
-        btnFin.className = "flex flex-col items-center justify-center text-slate-400 transition-all bg-transparent border-0 outline-none"; 
-        if(viewIti) viewIti.classList.remove("hidden"); if(viewFin) viewFin.classList.add("hidden"); 
-      } else { 
-        btnIti.className = "flex flex-col items-center justify-center text-slate-400 transition-all bg-transparent border-0 outline-none"; 
-        btnFin.className = "flex flex-col items-center justify-center text-primary transition-all bg-transparent border-0 outline-none"; 
-        if(viewIti) viewIti.classList.add("hidden"); if(viewFin) viewFin.classList.remove("hidden"); 
-        switchFinTab(activeCurrentFinTabIdx);
-      }
-    }
-
-    function switchFinTab(tabIdx) {
-      activeCurrentFinTabIdx = tabIdx;
-      for(let i=1; i<=4; i++) {
-        const btn = document.getElementById(`tab-btn-${i}`); const content = document.getElementById(`fin-content-${i}`);
-        if(i === tabIdx) {
-          if(btn) btn.className = "tab tab-active flex-1 text-[11px] font-black rounded-lg px-1 truncate";
-          if(content) content.classList.remove("hidden");
-        } else {
-          if(btn) btn.className = "tab flex-1 text-[11px] font-black rounded-lg px-1 truncate bg-transparent text-slate-500";
-          if(btn) btn.style = "background-color:transparent !important; color:#475569 !important;";
-          if(content) content.classList.add("hidden");
-        }
-      }
-      const t1Zone = document.getElementById("t1-members-checkbox-zone");
-      if(t1Zone && tabIdx === 1) {
-        t1Zone.innerHTML = "";
-        cachedActiveTripMembersList.forEach(m => {
-          t1Zone.innerHTML += `<label class="flex items-center gap-2.5 p-2 bg-white border border-slate-200 rounded-xl cursor-pointer text-xs font-bold text-slate-700"><input type="checkbox" name="chk-t1-user" value="${m.id}" checked class="checkbox checkbox-primary checkbox-sm rounded-md" style="background-color:transparent !important;"><span>${m.icon || '👤'} ${m.name}</span></label>`;
-        });
-      }
-    }
-
-    function buildTab2DynamicMembersForm() {
-      const zone = document.getElementById("t2-deposit-members-injector"); zone.innerHTML = "";
+    function openAddBillModal() {
+      const payerSelect = document.getElementById("t1-payer-select");
+      payerSelect.innerHTML = "";
+      cachedActiveTripMembersList.forEach(m => { payerSelect.innerHTML += `<option value="${m.id}">${m.name}</option>`; });
+      
+      const zone = document.getElementById("t1-members-checkbox-zone");
+      zone.innerHTML = "";
       cachedActiveTripMembersList.forEach(m => {
-        zone.innerHTML += `<div class="flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-xl gap-2"><label class="flex items-center gap-2 text-xs font-black text-slate-700 min-w-0 flex-1 cursor-pointer truncate"><input type="checkbox" name="chk-t2-user" id="chk-t2-target-${m.id}" value="${m.id}" checked class="checkbox checkbox-secondary checkbox-sm rounded-md" style="background-color:transparent !important;"><span class="truncate">${m.icon || '👤'} ${m.name}</span></label><div class="flex items-center gap-1 shrink-0 w-36"><span class="text-[10px] text-slate-400 font-bold">มัดจำ:</span><input type="number" id="input-t2-depamt-${m.id}" value="0" min="0" class="input input-bordered input-xs w-full text-right font-bold text-slate-800 bg-white"><span class="text-[10px] text-slate-400 font-bold">บาท</span></div></div>`;
+        zone.innerHTML += `
+          <label class="flex items-center gap-2 py-1 cursor-pointer font-bold text-xs text-slate-700">
+            <input type="checkbox" name="splitUsers" value="${m.id}" checked class="checkbox checkbox-xs checkbox-primary">
+            <span>${m.name}</span>
+          </label>`;
+      });
+      
+      document.getElementById("add-bill-form").reset();
+      document.getElementById("add-bill-modal").showModal();
+    }
+
+    function submitAddBill(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const splitUsers = Array.from(e.target.querySelectorAll('input[name="splitUsers"]:checked')).map(el => el.value);
+      
+      if(splitUsers.length === 0) { Swal.fire('โปรดเลือกคนหาร', 'คุณต้องมีสมาชิกตีกถูกหารบิลอย่างน้อย 1 คน', 'warning'); return; }
+      
+      const payload = {
+        action: "addExpenseNew", tripId: currentTripId, note: fd.get("note"),
+        category: fd.get("category"), totalAmount: parseFloat(fd.get("totalAmount")),
+        payerId: fd.get("payerId"), splits: splitUsers.join(",")
+      };
+      
+      Swal.fire({ title: 'กำลังลงบิล...', allowOutsideClick: false, didOpen:()=>Swal.showLoading() });
+      callAPI(WEB_APP_URL, 'POST', payload).then(() => {
+        Swal.close();
+        document.getElementById("add-bill-modal").close();
+        enterTripDashboard(currentTripId);
+      });
+    }
+
+    function openAddDepositModal() {
+      const zone = document.getElementById("t2-members-input-zone");
+      zone.innerHTML = "";
+      
+      cachedActiveTripMembersList.forEach(m => {
+        zone.innerHTML += `
+          <div class="flex items-center justify-between gap-2 border-b pb-1.5 last:border-0">
+            <label class="flex items-center gap-1.5 cursor-pointer font-bold text-xs shrink-0 w-24 truncate">
+              <input type="checkbox" id="t2-target-${m.id}" checked class="checkbox checkbox-xs checkbox-primary">
+              <span>${m.name}</span>
+            </label>
+            <input type="number" step="any" id="t2-amt-${m.id}" class="input input-bordered input-xs bg-white rounded-lg w-full font-black text-right text-slate-700" placeholder="เงินมัดจำ: 0">
+          </div>`;
+      });
+      
+      document.getElementById("add-deposit-form").reset();
+      document.getElementById("add-deposit-modal").showModal();
+    }
+
+    function submitAddDeposit(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const details = [];
+      
+      cachedActiveTripMembersList.forEach(m => {
+        const isTarget = document.getElementById(`t2-target-${m.id}`).checked;
+        const depAmt = parseFloat(document.getElementById(`t2-amt-${m.id}`).value) || 0;
+        details.push({ id: m.id, isTarget: isTarget, deposit: depAmt });
+      });
+      
+      const payload = {
+        action: "addDepositFull", tripId: currentTripId, note: fd.get("note"),
+        category: fd.get("category"), fullCost: parseFloat(fd.get("fullCost")), details: details
+      };
+      
+      Swal.fire({ title: 'กำลังสร้างโครงการมัดจำ...', allowOutsideClick: false, didOpen:()=>Swal.showLoading() });
+      callAPI(WEB_APP_URL, 'POST', payload).then(() => {
+        Swal.close();
+        document.getElementById("add-deposit-modal").close();
+        enterTripDashboard(currentTripId);
+      });
+    }
+
+    function openFinalPaymentModal(depId, note, fullCost, totalDeposit) {
+      document.getElementById("final-depId-hidden").value = depId;
+      document.getElementById("final-modal-desc").innerText = `บิล: ${note} (เงินมัดจำกองกลางสะสมรวมแล้ว: ฿${totalDeposit.toLocaleString()} บ.)`;
+      document.getElementById("final-fullCost-input").value = fullCost;
+      document.getElementById("final-paid-input").value = Math.max(0, fullCost - totalDeposit);
+      
+      const select = document.getElementById("t2-final-payer-select");
+      select.innerHTML = "";
+      cachedActiveTripMembersList.forEach(m => { select.innerHTML += `<option value="${m.id}">${m.name}</option>`; });
+      
+      document.getElementById("final-payment-modal").showModal();
+    }
+
+    function submitFinalPayment(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const payload = {
+        action: "updateDepositMasterStatus", depId: fd.get("depId"), status: "Ready_To_Settle",
+        finalPaid: parseFloat(fd.get("finalPaid")), finalPayerId: fd.get("finalPayerId")
+      };
+      
+      Swal.fire({ title: 'กำลังประมวลผลระบบ...', allowOutsideClick: false, didOpen:()=>Swal.showLoading() });
+      callAPI(WEB_APP_URL, 'POST', payload).then(() => {
+        Swal.close();
+        document.getElementById("final-payment-modal").close();
+        enterTripDashboard(currentTripId);
       });
     }
 
     function silentSyncFinancialData() {
-      if (!currentTripId) return;
-      callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${currentTripId}`).then(freshData => {
-        if (freshData && freshData.success) {
-          cachedActiveTripMembersList = freshData.members || [];
-          enterTripDashboard(currentTripId);
-        }
+      callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${currentTripId}`).then(data => {
+        if(data) enterTripDashboard(currentTripId);
       });
     }
 
-    function handleRegisterUserSubmit() {
-      const name = document.getElementById("reg-user-name").value.trim(), icon = document.getElementById("reg-user-icon").value.trim(), pin = document.getElementById("reg-user-pin").value.trim();
-      if(!name || !icon || !pin) return Swal.fire("ล้มเหลว", "กรอกข้อมูลไม่ครบ", "warning");
-      callAPI(WEB_APP_URL, 'POST', { action: "addNewUser", name: name, icon: icon, pin: pin }).then(res => {
-        if(res.success) { closeBottomSheet("modal-register-user"); window.location.reload(); }
-      });
-    }
-
-    function handleCreateTrip() { 
-      const title = document.getElementById("trip-title").value.trim(), desc = document.getElementById("trip-desc").value.trim(); 
-      if(!title) return; 
-      callAPI(WEB_APP_URL, 'POST', { action: "createTrip", title: title, desc: desc, hostId: currentUser.id }).then(() => { renderTripsList(); });
-    }
-
-    function handleRegisterItinerary() { 
-      const date = document.getElementById("iti-date").value, time = document.getElementById("iti-time").value, act = document.getElementById("iti-act").value.trim(), loc = document.getElementById("iti-loc").value.trim(), map = document.getElementById("iti-map").value.trim(); 
-      if(!date || !time || !act || !loc) return;
-      callAPI(WEB_APP_URL, 'POST', { action: "addItinerary", tripId: currentTripId, date: date, time: time, activity: act, location: loc, mapUrl: map }).then(res => {
-        if(res.success) { closeBottomSheet("modal-add-itinerary"); activeSelectedDayDate = date; enterTripDashboard(currentTripId); }
-      });
-    }
-
-    function submitTab1Expense() {
-      const amt = document.getElementById("t1-amount").value, note = document.getElementById("t1-note").value.trim(), cat = document.getElementById("t1-cat").value;
-      if(!amt || parseFloat(amt) <= 0 || !note) return;
-      const chks = document.getElementsByName("chk-t1-user");
-      const splitArray = []; for(let i=0; i<chks.length; i++) { if(chks[i].checked) splitArray.push(chks[i].value); }
-      closeBottomSheet("modal-add-tab1");
-      callAPI(WEB_APP_URL, 'POST', { action: "addExpenseNew", tripId: currentTripId, note: note, category: cat, totalAmount: amt, payerId: currentUser.id, splits: splitArray }).then(() => silentSyncFinancialData());
-    }
-
-    function submitTab2DepositMaster() {
-      const fullCost = parseFloat(document.getElementById("t2-fullcost").value) || 0, note = document.getElementById("t2-note").value.trim(), cat = document.getElementById("t2-cat").value;
-      const chks = document.getElementsByName("chk-t2-user"); const splitsArray = [];
-      for (let i = 0; i < chks.length; i++) {
-        splitsArray.push({ userId: chks[i].value, isTarget: chks[i].checked, depositAmount: parseFloat(document.getElementById(`input-t2-depamt-${chks[i].value}`).value) || 0 });
-      }
-      closeBottomSheet("modal-add-tab2-master");
-      callAPI(WEB_APP_URL, 'POST', { action: "addDepositMaster", tripId: currentTripId, note: note, category: cat, fullCost: fullCost, splits: splitsArray }).then(() => silentSyncFinancialData());
-    }
-
-    function openFinalPaymentModal(depId, note, fullCost, totalDeposit) {
-      if(window.event) window.event.stopPropagation();
-      document.getElementById("t2-final-depid").value = depId;
-      const expectedPaid = fullCost - totalDeposit;
-      document.getElementById("t2-final-expected-paid").value = expectedPaid;
-      document.getElementById("t2-final-paid-input").value = expectedPaid;
-      document.getElementById("t2-final-info-label").innerText = `บิล: ${note} | จ่ายเพิ่มหน้างาน: ฿${expectedPaid}`;
-      const select = document.getElementById("t2-final-payer-select"); select.innerHTML = "";
-      cachedActiveTripMembersList.forEach(m => { select.innerHTML += `<option value="${m.id}">${m.icon || '👤'} ${m.name}</option>`; });
-      openBottomSheet("modal-add-tab2-final");
-    }
-
-    function submitTab2FinalPayment() {
-      const depId = document.getElementById("t2-final-depid").value, payerId = document.getElementById("t2-final-payer-select").value, paidInput = parseFloat(document.getElementById("t2-final-paid-input").value) || 0;
-      closeBottomSheet("modal-add-tab2-final");
-      callAPI(WEB_APP_URL, 'POST', { action: "updateDepositFinalPayment", depId: depId, finalPaid: paidInput, finalPayerId: payerId }).then(() => { activeCurrentFinTabIdx = 3; silentSyncFinancialData(); });
-    }
-
-    function closeDepositJob(depId) { callAPI(WEB_APP_URL, 'POST', { action: "closeDepositStatus", depId: depId, status: "Archived" }).then(() => { activeCurrentFinTabIdx = 4; silentSyncFinancialData(); }); }
-    function deleteTab1Bill(billId) { callAPI(WEB_APP_URL, 'POST', { action: "deleteExpenseNew", billId: billId }).then(() => silentSyncFinancialData()); }
-    function deleteTab2Bill(depId) { callAPI(WEB_APP_URL, 'POST', { action: "deleteDepositFull", depId: depId }).then(() => silentSyncFinancialData()); }
+    function deleteTab1Bill(billId) { Swal.fire({ title: 'ยืนยันลบบิลนี้?', text: "ข้อมูลเงินสดใน Google Sheets จะถูกถอนออกถาวร", icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ยืนยันลบ' }).then((r) => { if(r.isConfirmed) { callAPI(WEB_APP_URL, 'POST', { action: "deleteExpenseNew", billId: billId }).then(() => silentSyncFinancialData()); } }); }
+    function deleteTab2Bill(depId) { Swal.fire({ title: 'ลบโครงการมัดจำ?', text: "ข้อมูลรายละเอียดเงินมัดจำทั้งหมดจะถูกถอนออก", icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ลบทิ้ง' }).then((r) => { if(r.isConfirmed) { callAPI(WEB_APP_URL, 'POST', { action: "deleteDepositFull", depId: depId }).then(() => silentSyncFinancialData()); } }); }
+    function closeDepositJob(depId) { callAPI(WEB_APP_URL, 'POST', { action: "updateDepositMasterStatus", depId: depId, status: "Settled", finalPaid: 0, finalPayerId: currentUser.id }).then(() => silentSyncFinancialData()); }
     function handleMemberAction(targetUserId, actionType) { callAPI(WEB_APP_URL, 'POST', { action: "handleMemberAction", tripId: currentTripId, targetUserId: targetUserId, type: actionType }).then(() => enterTripDashboard(currentTripId)); }
     function changeTab1BillStatus(billId, status) { callAPI(WEB_APP_URL, 'POST', { action: "updateExpenseNewStatus", billId: billId, status: status }).then(() => silentSyncFinancialData()); }
     function changeActiveDayTab(dStr) { activeSelectedDayDate = dStr; enterTripDashboard(currentTripId); }
     function backToTrips() { switchToView("view-trips"); renderTripsList(); }
-    function backToLogin() { currentUser = null; switchToView("view-login"); }
+
+    function switchSubDashboardView(subViewKey) {
+      ["sub-view-itinerary", "sub-view-expenses"].forEach(id => document.getElementById(id).classList.add("hidden"));
+      ["nav-btn-itinerary", "nav-btn-expenses"].forEach(id => document.getElementById(id).classList.remove("active"));
+      
+      if(subViewKey === 'itinerary') {
+        document.getElementById("sub-view-itinerary").classList.remove("hidden");
+        document.getElementById("nav-btn-itinerary").classList.add("active");
+      } else {
+        document.getElementById("sub-view-expenses").classList.remove("hidden");
+        document.getElementById("nav-btn-expenses").classList.add("active");
+        switchFinancialTab(1);
+      }
+    }
+
+    function switchFinancialTab(tabIndex) {
+      for(let i=1; i<=4; i++) {
+        document.getElementById(`tab${i}-list-container`).classList.add("hidden");
+        document.getElementById(`f-tab-btn-${i}`).classList.remove("tab-active");
+      }
+      document.getElementById(`tab${tabIndex}-list-container`).classList.remove("hidden");
+      document.getElementById(`f-tab-btn-${tabIndex}`).classList.add("tab-active");
+    }
 
     function switchToView(viewId) {
       ["view-login", "view-trips", "view-dashboard"].forEach(id => { const el = document.getElementById(id); if (el) { el.classList.add("hidden"); el.style.display = "none"; } });
@@ -781,7 +716,12 @@
       const target = document.getElementById(viewId); if (target) { target.classList.remove("hidden"); target.style.display = "flex"; }
       if(viewId === "view-dashboard" && nav) { nav.classList.remove("hidden"); }
     }
+
+    function callAPI(url, method = 'GET', data = null) {
+      const options = { method: method, mode: 'cors' };
+      if (method === 'POST' && data) { options.body = JSON.stringify(data); }
+      return fetch(url, options).then(r => r.json()).catch(err => { console.error("API error:", err); return null; });
+    }
   </script>
-  <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').then(() => console.log('PWA OK')); }</script>
 </body>
 </html>
