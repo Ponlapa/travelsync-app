@@ -660,7 +660,7 @@ function renderFullDashboardUI() {
   }); 
 }
 
-  function switchMainTab(tabName) {
+function switchMainTab(tabName) {
   const btnIti = document.getElementById("nav-btn-iti"), btnFin = document.getElementById("nav-btn-fin"), viewIti = document.getElementById("sub-view-itinerary"), viewFin = document.getElementById("sub-view-expenses");
   if(tabName === "iti") { 
     btnIti.className = "flex flex-col items-center justify-center text-primary transition-all bg-transparent border-0 outline-none"; 
@@ -695,152 +695,21 @@ function switchFinTab(tabIdx) {
     });
   }
 }
-    function openBottomSheet(id) {
-      const el = document.getElementById(id); if(!el) return;
-      el.classList.remove("hidden");
-      setTimeout(() => {
-        el.classList.add("opacity-100"); el.classList.remove("opacity-0");
-        const body = el.querySelector("div"); if(body) body.classList.remove("translate-y-full");
-      }, 10);
-    }
 
-    function closeBottomSheet(id) {
-      const el = document.getElementById(id); if(!el) return;
-      const body = el.querySelector("div"); if(body) body.classList.add("translate-y-full");
-      el.classList.add("opacity-0"); el.classList.remove("opacity-100");
-      setTimeout(() => { el.classList.add("hidden"); }, 300);
-    }
-
-    function switchMainTab(tabName) {
-      const btnIti = document.getElementById("nav-btn-iti"), btnFin = document.getElementById("nav-btn-fin"), viewIti = document.getElementById("sub-view-itinerary"), viewFin = document.getElementById("sub-view-expenses");
-      if(tabName === "iti") { 
-        btnIti.className = "flex flex-col items-center justify-center text-primary transition-all bg-transparent border-0 outline-none"; 
-        btnFin.className = "flex flex-col items-center justify-center text-slate-400 transition-all bg-transparent border-0 outline-none"; 
-        if(viewIti) viewIti.classList.remove("hidden"); if(viewFin) viewFin.classList.add("hidden"); 
-      } else { 
-        btnIti.className = "flex flex-col items-center justify-center text-slate-400 transition-all bg-transparent border-0 outline-none"; 
-        btnFin.className = "flex flex-col items-center justify-center text-primary transition-all bg-transparent border-0 outline-none"; 
-        if(viewIti) viewIti.classList.add("hidden"); if(viewFin) viewFin.classList.remove("hidden"); 
-        switchFinTab(activeCurrentFinTabIdx);
-      }
-    }
-
-    function switchFinTab(tabIdx) {
-      activeCurrentFinTabIdx = tabIdx;
-      for(let i=1; i<=4; i++) {
-        const btn = document.getElementById(`tab-btn-${i}`); const content = document.getElementById(`fin-content-${i}`);
-        if(i === tabIdx) {
-          if(btn) btn.className = "tab tab-active flex-1 text-[11px] font-black rounded-lg px-1 truncate";
-          if(content) content.classList.remove("hidden");
-        } else {
-          if(btn) btn.className = "tab flex-1 text-[11px] font-black rounded-lg px-1 truncate bg-transparent text-slate-500";
-          if(btn) btn.style = "background-color:transparent !important; color:#475569 !important;";
-          if(content) content.classList.add("hidden");
-        }
-      }
-      const t1Zone = document.getElementById("t1-members-checkbox-zone");
-      if(t1Zone && tabIdx === 1) {
-        t1Zone.innerHTML = "";
-        cachedActiveTripMembersList.forEach(m => {
-          t1Zone.innerHTML += `<label class="flex items-center gap-2.5 p-2 bg-white border border-slate-200 rounded-xl cursor-pointer text-xs font-bold text-slate-700"><input type="checkbox" name="chk-t1-user" value="${m.id}" checked class="checkbox checkbox-primary checkbox-sm rounded-md" style="background-color:transparent !important;"><span>${m.icon || '👤'} ${m.name}</span></label>`;
-        });
-      }
-    }
-
-    function buildTab2DynamicMembersForm() {
-      const zone = document.getElementById("t2-deposit-members-injector"); zone.innerHTML = "";
-      cachedActiveTripMembersList.forEach(m => {
-        zone.innerHTML += `<div class="flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-xl gap-2"><label class="flex items-center gap-2 text-xs font-black text-slate-700 min-w-0 flex-1 cursor-pointer truncate"><input type="checkbox" name="chk-t2-user" id="chk-t2-target-${m.id}" value="${m.id}" checked class="checkbox checkbox-secondary checkbox-sm rounded-md" style="background-color:transparent !important;"><span class="truncate">${m.icon || '👤'} ${m.name}</span></label><div class="flex items-center gap-1 shrink-0 w-36"><span class="text-[10px] text-slate-400 font-bold">มัดจำ:</span><input type="number" id="input-t2-depamt-${m.id}" value="0" min="0" class="input input-bordered input-xs w-full text-right font-bold text-slate-800 bg-white"><span class="text-[10px] text-slate-400 font-bold">บาท</span></div></div>`;
-      });
-    }
-
-    function silentSyncFinancialData() {
-      if (!currentTripId) return;
-      callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${currentTripId}`).then(freshData => {
-        if (freshData && freshData.success) {
-          cachedActiveTripMembersList = freshData.members || [];
-          enterTripDashboard(currentTripId);
-        }
-      });
-    }
-
-    function handleRegisterUserSubmit() {
-      const name = document.getElementById("reg-user-name").value.trim(), icon = document.getElementById("reg-user-icon").value.trim(), pin = document.getElementById("reg-user-pin").value.trim();
-      if(!name || !icon || !pin) return Swal.fire("ล้มเหลว", "กรอกข้อมูลไม่ครบ", "warning");
-      callAPI(WEB_APP_URL, 'POST', { action: "addNewUser", name: name, icon: icon, pin: pin }).then(res => {
-        if(res.success) { closeBottomSheet("modal-register-user"); window.location.reload(); }
-      });
-    }
-
-    function handleCreateTrip() { 
-      const title = document.getElementById("trip-title").value.trim(), desc = document.getElementById("trip-desc").value.trim(); 
-      if(!title) return; 
-      callAPI(WEB_APP_URL, 'POST', { action: "createTrip", title: title, desc: desc, hostId: currentUser.id }).then(() => { renderTripsList(); });
-    }
-
-    function handleRegisterItinerary() { 
-      const date = document.getElementById("iti-date").value, time = document.getElementById("iti-time").value, act = document.getElementById("iti-act").value.trim(), loc = document.getElementById("iti-loc").value.trim(), map = document.getElementById("iti-map").value.trim(); 
-      if(!date || !time || !act || !loc) return;
-      callAPI(WEB_APP_URL, 'POST', { action: "addItinerary", tripId: currentTripId, date: date, time: time, activity: act, location: loc, mapUrl: map }).then(res => {
-        if(res.success) { closeBottomSheet("modal-add-itinerary"); activeSelectedDayDate = date; enterTripDashboard(currentTripId); }
-      });
-    }
-
-    function submitTab1Expense() {
-      const amt = document.getElementById("t1-amount").value, note = document.getElementById("t1-note").value.trim(), cat = document.getElementById("t1-cat").value;
-      if(!amt || parseFloat(amt) <= 0 || !note) return;
-      const chks = document.getElementsByName("chk-t1-user");
-      const splitArray = []; for(let i=0; i<chks.length; i++) { if(chks[i].checked) splitArray.push(chks[i].value); }
-      closeBottomSheet("modal-add-tab1");
-      callAPI(WEB_APP_URL, 'POST', { action: "addExpenseNew", tripId: currentTripId, note: note, category: cat, totalAmount: amt, payerId: currentUser.id, splits: splitArray }).then(() => silentSyncFinancialData());
-    }
-
-    function submitTab2DepositMaster() {
-      const fullCost = parseFloat(document.getElementById("t2-fullcost").value) || 0, note = document.getElementById("t2-note").value.trim(), cat = document.getElementById("t2-cat").value;
-      const chks = document.getElementsByName("chk-t2-user"); const splitsArray = [];
-      for (let i = 0; i < chks.length; i++) {
-        splitsArray.push({ userId: chks[i].value, isTarget: chks[i].checked, depositAmount: parseFloat(document.getElementById(`input-t2-depamt-${chks[i].value}`).value) || 0 });
-      }
-      closeBottomSheet("modal-add-tab2-master");
-      callAPI(WEB_APP_URL, 'POST', { action: "addDepositMaster", tripId: currentTripId, note: note, category: cat, fullCost: fullCost, splits: splitsArray }).then(() => silentSyncFinancialData());
-    }
-
-    function openFinalPaymentModal(depId, note, fullCost, totalDeposit) {
-      if(window.event) window.event.stopPropagation();
-      document.getElementById("t2-final-depid").value = depId;
-      const expectedPaid = fullCost - totalDeposit;
-      document.getElementById("t2-final-expected-paid").value = expectedPaid;
-      document.getElementById("t2-final-paid-input").value = expectedPaid;
-      document.getElementById("t2-final-info-label").innerText = `บิล: ${note} | จ่ายเพิ่มหน้างาน: ฿${expectedPaid}`;
-      const select = document.getElementById("t2-final-payer-select"); select.innerHTML = "";
-      cachedActiveTripMembersList.forEach(m => { select.innerHTML += `<option value="${m.id}">${m.icon || '👤'} ${m.name}</option>`; });
-      openBottomSheet("modal-add-tab2-final");
-    }
-
-    function submitTab2FinalPayment() {
-      const depId = document.getElementById("t2-final-depid").value, payerId = document.getElementById("t2-final-payer-select").value, paidInput = parseFloat(document.getElementById("t2-final-paid-input").value) || 0;
-      closeBottomSheet("modal-add-tab2-final");
-      callAPI(WEB_APP_URL, 'POST', { action: "updateDepositFinalPayment", depId: depId, finalPaid: paidInput, finalPayerId: payerId }).then(() => { activeCurrentFinTabIdx = 3; silentSyncFinancialData(); });
-    }
-
-    function closeDepositJob(depId) { callAPI(WEB_APP_URL, 'POST', { action: "closeDepositStatus", depId: depId, status: "Archived" }).then(() => { activeCurrentFinTabIdx = 4; silentSyncFinancialData(); }); }
-    function deleteTab1Bill(billId) { callAPI(WEB_APP_URL, 'POST', { action: "deleteExpenseNew", billId: billId }).then(() => silentSyncFinancialData()); }
-    function deleteTab2Bill(depId) { callAPI(WEB_APP_URL, 'POST', { action: "deleteDepositFull", depId: depId }).then(() => silentSyncFinancialData()); }
-    function handleMemberAction(targetUserId, actionType) { callAPI(WEB_APP_URL, 'POST', { action: "handleMemberAction", tripId: currentTripId, targetUserId: targetUserId, type: actionType }).then(() => enterTripDashboard(currentTripId)); }
-    function changeTab1BillStatus(billId, status) { callAPI(WEB_APP_URL, 'POST', { action: "updateExpenseNewStatus", billId: billId, status: status }).then(() => silentSyncFinancialData()); }
-    function changeActiveDayTab(dStr) { 
+function changeActiveDayTab(dStr) { 
   activeSelectedDayDate = dStr; 
   renderFullDashboardUI(); 
 }
-    function backToTrips() { switchToView("view-trips"); renderTripsList(); }
-    function backToLogin() { currentUser = null; switchToView("view-login"); }
 
-    function switchToView(viewId) {
-      ["view-login", "view-trips", "view-dashboard"].forEach(id => { const el = document.getElementById(id); if (el) { el.classList.add("hidden"); el.style.display = "none"; } });
-      const nav = document.getElementById("app-bottom-navbar"); if (nav) nav.classList.add("hidden");
-      const target = document.getElementById(viewId); if (target) { target.classList.remove("hidden"); target.style.display = "flex"; }
-      if(viewId === "view-dashboard" && nav) { nav.classList.remove("hidden"); }
-    }
+function backToTrips() { switchToView("view-trips"); renderTripsList(); }
+function backToLogin() { currentUser = null; globalTripData = null; currentTripId = null; switchToView("view-login"); }
+
+function switchToView(viewId) {
+  ["view-login", "view-trips", "view-dashboard"].forEach(id => { const el = document.getElementById(id); if (el) { el.classList.add("hidden"); el.style.display = "none"; } });
+  const nav = document.getElementById("app-bottom-navbar"); if (nav) nav.classList.add("hidden");
+  const target = document.getElementById(viewId); if (target) { target.classList.remove("hidden"); target.style.display = "flex"; }
+  if(viewId === "view-dashboard" && nav) { nav.classList.remove("hidden"); }
+}
   </script>
   <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').then(() => console.log('PWA OK')); }</script>
 </body>
