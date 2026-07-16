@@ -389,6 +389,7 @@
   <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzLbP8JjANmijVPfBwdGA3E-Pw8Fr-qbZEFt-X3_CyQ7ScWqyFbrb19cP3QEJ01Y21L/exec";
     let currentUser = null; let currentTripId = null;
+    let globalTripData = null;
     let cachedUsers = []; let cachedActiveTripMembersList = [];
     let globalItineraryDataCached = []; let activeSelectedDayDate = "";
     let activeCurrentFinTabIdx = 1;
@@ -464,15 +465,31 @@
       });
     }
 
-   function enterTripDashboard(tripId) {
-      currentTripId = tripId;
-      Swal.fire({ title: 'กำลังโหลดข้อมูล...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-      
-      callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${tripId}`).then(data => {
-        Swal.close();
-        if(!data) return; // 🎯 จุดที่ 3.1 แก้ไข: ปลดล็อกเงื่อนไขความสำเร็จ ป้องกันหน้าจอล็อกค้าง
+  function enterTripDashboard(tripId) {
+  const isSameTrip = (currentTripId === tripId);
+  currentTripId = tripId;
 
-        document.getElementById("dash-trip-title").innerText = "ระบบบัญชีกลุ่มทริป";
+  // ⚡ เพิ่มเงื่อนไขเช็ค: ถ้าเป็นทริปเดิมและมีข้อมูลในแรมแล้ว ให้วาดจอทันทีไม่ต้องโหลดใหม่
+  if (isSameTrip && globalTripData) {
+    renderFullDashboardUI();
+    switchToView("view-dashboard");
+  } else {
+    // ถ้าไม่มีข้อมูล ให้เปิดโหลดดิ้งแล้วดึงจาก GAS ตามปกติ
+    Swal.fire({ title: 'กำลังโหลดข้อมูลทริป...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+    callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${tripId}`).then(data => {
+      Swal.close();
+      if(!data || !data.success) return;
+
+      globalTripData = data; // บันทึกลงแรม (Cache)
+      renderFullDashboardUI();
+      switchToView("view-dashboard");
+    });
+  }
+}
+    function renderFullDashboardUI() {
+  if (!globalTripData) return; // ถ้าไม่มีข้อมูลในแรมให้หยุดทำงาน
+  const data = globalTripData; //
+ document.getElementById("dash-trip-title").innerText = "ระบบบัญชีกลุ่มทริป";
         cachedActiveTripMembersList = data.members || [];
         globalItineraryDataCached = data.itinerary || [];
 
