@@ -523,49 +523,63 @@ renderItineraryTimeline();
         
         // TAB 1
         const t1Container = document.getElementById("tab1-list-container"); 
-        if(t1Container) {
-          t1Container.innerHTML = "";
-          (data.tab1Expenses || []).forEach((h) => {
-            let splitsHtml = (h.splits || []).map(s => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${s.name} ➔ ภาระ: ฿${parseFloat(s.share).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
-            let actionBtn = h.status === "Pending" ? `<button onclick="event.stopPropagation(); changeTab1BillStatus('${h.billId}', 'Closed')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px] px-2.5">ปิดยอด ✅</button>` : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">Closed</span>`;
-            const cId = `tab1-col-${h.billId}`;
-            t1Container.innerHTML += `
-              <div class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
-                <div onclick="document.getElementById('${cId}').classList.toggle('hidden');" class="pr-32 pl-4 py-3 text-xs cursor-pointer hover:bg-slate-100">
-                  <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
-                  <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName}</span>
-                  <div class="font-black text-slate-700 mt-1.5 text-sm">ยอดเงินสด: ฿${parseFloat(h.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
-                </div>
-                <div class="absolute right-3 top-2.5 flex items-center gap-1.5 z-30">${actionBtn} <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500"><i class="fa-solid fa-trash-can text-xs"></i></button></div>
-                <div id="${cId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${splitsHtml}</div>
-              </div>`;
-          });
-        }
+if (t1Container) {
+  t1Container.innerHTML = "";
+  if (!data.tab1Expenses || data.tab1Expenses.length === 0) {
+    t1Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบรายการบิลทั่วไป</div>`;
+  } else {
+    data.tab1Expenses.forEach((h) => {
+      let splitsHtml = (h.splits || []).map(s => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${s.name} ➔ ภาระ: ฿${parseFloat(s.share).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
+      let actionBtn = h.status === "Pending" 
+        ? `<button onclick="event.stopPropagation(); changeTab1BillStatus('${h.billId}', 'Closed')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px] px-2.5">ปิดยอด ✅</button>` 
+        : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">จ่ายจบแล้ว</span>`;
+      
+      t1Container.innerHTML += `
+        <div class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
+          <div onclick="document.getElementById('tab1-col-${h.billId}').classList.toggle('hidden');" class="pr-32 pl-4 py-3 text-xs cursor-pointer hover:bg-slate-100">
+            <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+            <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName}</span>
+            <div class="font-black text-slate-700 mt-1.5 text-sm">ยอดเงินสด: ฿${parseFloat(h.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
+          </div>
+          <div class="absolute right-3 top-2.5 flex items-center gap-1.5 z-30">
+            ${actionBtn}
+            <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
+          </div>
+          <div id="tab1-col-${h.billId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${splitsHtml}</div>
+        </div>`;
+    });
+  }
+}
 
-        // TAB 2
-        const t2Container = document.getElementById("tab2-list-container"); 
-        if(t2Container) {
-          t2Container.innerHTML = "";
-          (data.tab2Deposits || []).forEach((h) => {
-            let detailsHtml = (h.details || []).map(d => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${d.name} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
-            let actionBtn = h.status === "Awaiting_Final" ? `<button onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-7 min-h-0 text-[10px] px-2">อัพเดทจ่ายเงิน 🏨</button>` : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">${h.status === "Ready_To_Settle" ? "รอจ่าย" : "จ่ายแล้ว"}</span>`;
-            const cId = `tab2-col-${h.depId}`;
-            t2Container.innerHTML += `
-              <div class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
-                <div onclick="document.getElementById('${cId}').classList.toggle('hidden');" class="pl-4 py-3 pr-4 text-xs cursor-pointer hover:bg-slate-100">
-                  <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
-                  <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-                </div>
-                <div class="tab2-action-group">
-                  <span class="text-[10px] font-bold text-slate-500 mr-auto">วันจริงจ่ายเพิ่ม: <b class="text-slate-700">฿${parseFloat(h.finalPaid).toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
-                  ${actionBtn}
-                  <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500"><i class="fa-solid fa-trash-can text-xs"></i></button>
-                </div>
-                <div id="${cId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${detailsHtml}</div>
-              </div>`;
-          });
-        }
-
+// 🏨 พ่นข้อมูลบิลโครงการมัดจำ (Tab 2)
+const t2Container = document.getElementById("tab2-list-container"); 
+if (t2Container) {
+  t2Container.innerHTML = "";
+  if (!data.tab2Deposits || data.tab2Deposits.length === 0) {
+    t2Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบโครงการมัดจำ</div>`;
+  } else {
+    data.tab2Deposits.forEach((h) => {
+      let detailsHtml = (h.details || []).map(d => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${d.name} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
+      let actionBtn = h.status === "Awaiting_Final" 
+        ? `<button onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-7 min-h-0 text-[10px] px-2">อัพเดทจ่ายเงิน 🏨</button>` 
+        : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">${h.status === "Ready_To_Settle" ? "รอเคลียร์หนี้" : "ปิดโครงการ"}</span>`;
+      
+      t2Container.innerHTML += `
+        <div class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
+          <div onclick="document.getElementById('tab2-col-${h.depId}').classList.toggle('hidden');" class="pl-4 py-3 pr-4 text-xs cursor-pointer hover:bg-slate-100">
+            <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+            <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+          </div>
+          <div class="tab2-action-group">
+            <span class="text-[10px] font-bold text-slate-500 mr-auto">วันจริงจ่ายเพิ่ม: <b class="text-slate-700">฿${parseFloat(h.finalPaid).toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
+            ${actionBtn}
+            <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
+          </div>
+          <div id="tab2-col-${h.depId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${detailsHtml}</div>
+        </div>`;
+    });
+  }
+}
         // TAB 3
         const t3Container = document.getElementById("tab3-list-container"); 
         if(t3Container) {
