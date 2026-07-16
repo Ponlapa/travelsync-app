@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>TravelSync Core V2</title>
   
+  <!-- 🔗 ลิงก์เชื่อมโยง PWA Manifest (ไฟล์ข้อ 1) -->
   <link rel="manifest" href="manifest.json">
   
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
@@ -14,6 +15,9 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   
   <style>
+    /* ==========================================================================
+       1. โครงสร้างหลักของหน้าเว็บและกรอบนอก (Layout & Global Elements)
+       ========================================================================== */
     html, body {
       background-color: #f8fafc; 
       margin: 0;
@@ -44,6 +48,9 @@
       display: none !important;
     }
 
+    /* ==========================================================================
+       2. โครงสร้างหน้าจอหลักแต่ละหน้า (Views Layout)
+       ========================================================================== */
     #view-login {
       height: 100% !important;
       display: flex;
@@ -72,6 +79,9 @@
       box-sizing: border-box;
     }
 
+    /* ==========================================================================
+       3. โครงสร้างระบบสกรอลล์เลื่อนหน้าจอภายใน (🔒 FIXED SCROLL SYSTEM)
+       ========================================================================== */
     #trips-list-container {
       flex: 1;
       overflow-y: auto !important;
@@ -128,6 +138,9 @@
       display: none; 
     }
 
+    /* ==========================================================================
+       4. UI การ์ดและกลุ่มดีไซน์ตกแต่ง
+       ========================================================================== */
     .tabs-boxed .tab-active {
       background-color: #570df8 !important;
       color: #ffffff !important;
@@ -148,6 +161,8 @@
 <body>
 
   <div class="app-container shadow-2xl">
+    
+    <!-- 🟢 1. ZONE VIEW: LOGIN FRAME -->
     <div id="view-login" class="w-full bg-white hidden">
       <div class="text-center mt-4">
         <h1 class="text-4xl font-black text-slate-800 tracking-tight flex items-center justify-center gap-2">
@@ -156,19 +171,25 @@
         </h1>
         <p class="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest">แอปพลิเคชันจัดการทริปและแบ่งบิลแยกประเภทเด็ดขาด</p>
       </div>
+
       <div class="w-full space-y-5 my-auto">
         <div class="form-control w-full">
           <label class="label"><span class="label-text font-black text-slate-600 text-xs">เลือกชื่อผู้ใช้งานของคุณ</span></label>
-          <select id="login-user-select" class="select select-bordered w-full font-bold text-slate-800 bg-slate-50 border-2 rounded-xl focus:outline-none focus:border-primary"></select>
+          <select id="login-user-select" class="select select-bordered w-full font-bold text-slate-800 bg-slate-50 border-2 rounded-xl focus:outline-none focus:border-primary">
+            <option value="" disabled selected>กำลังโหลดข้อมูลผู้ใช้...</option>
+          </select>
         </div>
+
         <div class="form-control w-full">
           <label class="label"><span class="label-text font-black text-slate-600 text-xs">ระบุรหัสส่วนตัวความปลอดภัย (PIN)</span></label>
           <input type="password" id="login-user-pin" placeholder="••••" maxlength="4" class="input input-bordered w-full text-center text-xl font-black tracking-widest text-slate-800 bg-slate-50 border-2 rounded-xl focus:outline-none focus:border-primary">
         </div>
+
         <button onclick="handleUserLoginSubmit()" class="btn btn-primary w-full text-sm font-black text-white rounded-2xl shadow-md h-12 min-h-0 bg-gradient-to-r from-primary to-indigo-600 border-0 hover:opacity-90 mt-2">
           เข้าสู่หน้าแอปพลิเคชัน 🚀
         </button>
       </div>
+
       <div class="text-center pt-4 border-t border-slate-100 w-full">
         <span class="text-[11px] font-bold text-slate-300">หรือผู้ใช้ใหม่</span>
         <button onclick="openBottomSheet('modal-register-user')" class="btn btn-outline btn-sm w-full mt-2 font-black text-secondary rounded-xl border-2 hover:bg-secondary hover:text-white text-[11px] h-9 min-h-0">
@@ -177,6 +198,7 @@
       </div>
     </div>
 
+    <!-- 🟢 2. ZONE VIEW: TRIPS DIRECTORY LIST -->
     <div id="view-trips" class="w-full hidden">
       <div class="bg-white px-4 pt-5 pb-3 border-b border-slate-100 shrink-0 flex justify-between items-center">
         <div class="flex items-center gap-2.5">
@@ -191,9 +213,13 @@
           <button onclick="openBottomSheet('modal-add-trip')" class="btn btn-sm btn-circle btn-primary text-white shadow-md flex items-center justify-center w-9 h-9 min-h-0"><i class="fa-solid fa-plus text-base"></i></button>
         </div>
       </div>
-      <div id="trips-list-container" class="space-y-3"></div>
+      
+      <div id="trips-list-container" class="space-y-3">
+        <!-- พ่นผ่าน JS -->
+      </div>
     </div>
 
+    <!-- 🟢 3. ZONE VIEW: TRIP ACTION DASHBOARD -->
     <div id="view-dashboard" class="w-full hidden relative">
       <div class="bg-white px-4 pt-4 pb-3 border-b border-slate-100 shrink-0 flex items-center gap-2">
         <button onclick="backToTrips()" class="btn btn-sm btn-circle bg-slate-100 text-slate-600 border-0 hover:bg-slate-200 shadow-3xs flex items-center justify-center w-8 h-8 min-h-0"><i class="fa-solid fa-arrow-left text-xs"></i></button>
@@ -202,31 +228,40 @@
           <span class="text-[10px] text-slate-400 font-bold block truncate mt-0.5">TravelSync Core Finance Center</span>
         </div>
       </div>
+
       <div id="host-approval-box" class="bg-amber-50 border-b border-amber-200 p-3 shrink-0 hidden space-y-2">
         <div class="text-[10px] font-black text-amber-800 uppercase tracking-wider flex items-center gap-1">
           <i class="fa-solid fa-shield-halved text-amber-600"></i>คำขอเข้าร่วมทริปที่รออนุมัติ (Host Control):
         </div>
         <div id="pending-members-list" class="space-y-1.5 max-height-[120px] overflow-y-auto"></div>
       </div>
+
       <div class="flex-1 overflow-hidden relative">
+        <!-- ย่อย 1: แผนการท่องเที่ยวไทม์ไลน์ -->
         <div id="sub-view-itinerary" class="hidden">
           <div class="flex justify-between items-center mb-1 shrink-0">
             <h3 class="text-sm font-black text-slate-800 flex items-center gap-1.5"><i class="fa-solid fa-map-location-dot text-slate-400"></i> แผนกิจกรรมทริป</h3>
             <button onclick="openBottomSheet('modal-add-itinerary')" class="btn btn-xs btn-primary font-bold px-2 rounded-lg h-6 min-h-0 text-[10px]">+ เพิ่มแผน</button>
           </div>
-          <div id="itinerary-timeline" class="relative border-l-2 border-slate-200 pl-4 ml-2 mt-4 space-y-4"></div>
+          <div id="itinerary-timeline" class="relative border-l-2 border-slate-200 pl-4 ml-2 mt-4 space-y-4">
+            <!-- Timeline Nodes Inject Here -->
+          </div>
         </div>
+
+        <!-- ย่อย 2: ระบบบัญชี 4 แท็บ -->
         <div id="sub-view-expenses" class="space-y-3 hidden">
           <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-3.5 rounded-2xl text-center shadow-md shrink-0">
             <div class="text-[10px] font-medium opacity-70 uppercase tracking-wider">ยอดรวมค่าใช้จ่ายทั้งทริป</div>
             <div id="cost-total-display" class="text-2xl font-black mt-0.5 text-yellow-400">฿0.00 บาท</div>
           </div>
+
           <div class="tabs tabs-boxed bg-slate-100 p-1 flex h-11 shrink-0">
             <button id="tab-btn-1" onclick="switchFinTab(1)" class="tab tab-active flex-1 text-[11px] font-black rounded-lg px-1 truncate">ค่าใช้จ่ายใหม่</button>
             <button id="tab-btn-2" onclick="switchFinTab(2)" class="tab flex-1 text-[11px] font-black rounded-lg px-1 truncate" style="background-color:transparent !important; color:#475569 !important;">ค่าใช้จ่ายมัดจำ</button>
             <button id="tab-btn-3" onclick="switchFinTab(3)" class="tab flex-1 text-[11px] font-black rounded-lg px-1 truncate" style="background-color:transparent !important; color:#475569 !important;">จัดการเงินมัดจำ</button>
             <button id="tab-btn-4" onclick="switchFinTab(4)" class="tab flex-1 text-[11px] font-black rounded-lg px-1 truncate" style="background-color:transparent !important; color:#475569 !important;">สรุปรายบุคคล</button>
           </div>
+
           <div id="fin-content-1" class="hidden flex-1 flex flex-col min-height-0">
             <div class="flex justify-between items-center mb-1 shrink-0">
               <span class="text-[10px] text-slate-400 font-bold">ประวัติบิลทั่วไป (หารจบทันทีรายบิล)</span>
@@ -234,6 +269,7 @@
             </div>
             <div id="tab1-list-container"></div>
           </div>
+
           <div id="fin-content-2" class="hidden flex-1 flex flex-col min-height-0">
             <div class="flex justify-between items-center mb-1 shrink-0">
               <span class="text-[10px] text-slate-400 font-bold">ประวัติบิลมัดจำโครงการทริป</span>
@@ -241,16 +277,19 @@
             </div>
             <div id="tab2-list-container"></div>
           </div>
+
           <div id="fin-content-3" class="hidden flex-1 flex flex-col min-height-0">
             <div class="mb-1 shrink-0"><span class="text-[10px] text-slate-400 font-bold">รายการจับคู่โอนเงินเพื่อเฉลี่ยเงินมัดจำล่วงหน้า</span></div>
             <div id="tab3-list-container" class="space-y-3"></div>
           </div>
+
           <div id="fin-content-4" class="hidden flex-1 flex flex-col min-height-0">
-            <div class="mb-1 shrink-0"><span class="text-[10px] text-slate-400 font-bold">ยอดเงินสุทธิสะสมแยกรายคน (Real-time)</span></div>
+            <div class="mb-1 shrink-0"><span class="text-[10px] text-slate-400 font-bold">ยอดเงินสุทธิสะสมแยกรายคน (อัปเดต Real-time)</span></div>
             <div id="tab4-list-container" class="space-y-2"></div>
           </div>
         </div> 
       </div> 
+
       <div id="app-bottom-navbar" class="absolute bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 grid grid-cols-2 z-40 shrink-0 hidden">
         <button id="nav-btn-iti" onclick="switchMainTab('iti')" class="flex flex-col items-center justify-center text-primary transition-all bg-transparent border-0 outline-none">
           <i class="fa-solid fa-calendar-days text-lg"></i>
@@ -264,6 +303,9 @@
     </div> 
   </div>
 
+  <!-- ==========================================================================
+     5. POPUP MODAL DIALOGS
+     ========================================================================== -->
   <div id="modal-register-user" onclick="closeBottomSheet('modal-register-user')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
     <div onclick="event.stopPropagation()" class="bg-white w-full max-width-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
       <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
@@ -358,22 +400,45 @@
     </div>
   </div>
 
+  <!-- ==========================================================================
+     6. CORE SCRIPT JAVASCRIPT LOGIC CENTER (🔗 API FETCH DRIVEN)
+     ========================================================================== -->
   <script>
+    // ⚠️ [สำคัญมาก]: นำลิงก์ Web App (URL ตัวยาวที่ลงท้ายด้วย /exec) มาวางแทนที่ข้อความในเครื่องหมายคำพูดด้านล่างนี้
+    const WEB_APP_URL = "https://script.google.com/macros/s/เปลี่ยนตรงนี้เป็นไอดีเว็บแอปของคุณ/exec";
+
     let currentUser = null; let currentTripId = null;
     let cachedUsers = []; let cachedActiveTripMembersList = [];
     let globalItineraryDataCached = []; let activeSelectedDayDate = "";
     let activeCurrentFinTabIdx = 1;
 
+    // ฟังก์ชันช่วยจัดการยิง API ผ่าน Fetch เพื่อย้ายระบบออกจาก Google Script Environment
+    function callAPI(endpoint, method = 'GET', bodyData = null) {
+      const options = { method: method };
+      if (bodyData && method === 'POST') {
+        options.body = JSON.stringify(bodyData);
+        options.headers = { 'Content-Type': 'text/plain' }; // ป้องกันการติดปัญหา Preflight CORS หลังบ้าน
+      }
+      return fetch(endpoint, options).then(res => res.json());
+    }
+
     window.addEventListener("DOMContentLoaded", function() {
       showLoading("กำลังเชื่อมต่อเซิร์ฟเวอร์ฐานข้อมูล...");
-      google.script.run.withSuccessHandler(function(usersList) {
-        Swal.close();
-        cachedUsers = usersList || [];
-        const select = document.getElementById("login-user-select");
-        select.innerHTML = `<option value="" disabled selected>เลือกโปรไฟล์ผู้ใช้ของตนเอง</option>`;
-        cachedUsers.forEach(u => { select.innerHTML += `<option value="${u.id}">${u.icon} ${u.name}</option>`; });
-        switchToView("view-login");
-      }).getAllUsers();
+      
+      callAPI(`${WEB_APP_URL}?action=getAllUsers`)
+        .then(usersList => {
+          Swal.close();
+          cachedUsers = usersList || [];
+          const select = document.getElementById("login-user-select");
+          select.innerHTML = `<option value="" disabled selected>เลือกโปรไฟล์ผู้ใช้ของตนเอง</option>`;
+          cachedUsers.forEach(u => { select.innerHTML += `<option value="${u.id}">${u.icon} ${u.name}</option>`; });
+          switchToView("view-login");
+        })
+        .catch(err => {
+          Swal.close();
+          // ถ้ายังไม่ได้ใส่ URL หรือต่อฐานข้อมูลไม่สำเร็จ ให้เปิดหน้าล็อกอินเปล่า ๆ เพื่อให้เช็กดีไซน์ความสวยงามได้ทันที
+          switchToView("view-login");
+        });
     });
 
     function showLoading(textStr) {
@@ -402,169 +467,174 @@
       if(!uId || !pin) return Swal.fire("แจ้งเตือน", "กรุณาเลือกชื่อและระบุ PIN ให้ครบถ้วน", "warning");
 
       showLoading("กำลังตรวจสอบรหัสความปลอดภัย PIN...");
-      google.script.run.withSuccessHandler(function(res) {
-        Swal.close();
-        if(res.success) {
-          currentUser = cachedUsers.find(u => u.id === uId);
-          document.getElementById("login-user-pin").value = ""; 
-          switchToView("view-trips"); 
-          renderTripsList();
-        } else { Swal.fire("ล้มเหลว", res.error || "รหัส PIN ไม่ถูกต้อง", "error"); }
-      }).verifyUserPin(uId, pin);
+      callAPI(WEB_APP_URL, 'POST', { action: "verifyUserPin", uId: uId, pin: pin })
+        .then(res => {
+          Swal.close();
+          if(res.success) {
+            currentUser = cachedUsers.find(u => u.id === uId);
+            document.getElementById("login-user-pin").value = ""; 
+            switchToView("view-trips"); 
+            renderTripsList();
+          } else { Swal.fire("ล้มเหลว", res.error || "รหัส PIN ไม่ถูกต้อง", "error"); }
+        });
     }
 
     function renderTripsList() {
       if(!currentUser) return;
       document.getElementById("current-user-badge").innerText = `${currentUser.icon} ${currentUser.name}`;
       
-      google.script.run.withSuccessHandler(function(trips) {
-        const container = document.getElementById("trips-list-container");
-        container.innerHTML = "";
-        
-        if(!trips || trips.length === 0) {
-          container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400 font-bold bg-white/60 rounded-2xl border border-dashed border-slate-300">ไม่พบคิวทริปท่องเที่ยวในฐานข้อมูล<br>กดปุ่ม + เพื่อสร้างทริปใหม่ได้ทันทีครับ</div>`;
-          return;
-        }
+      callAPI(`${WEB_APP_URL}?action=getAllTrips`)
+        .then(trips => {
+          const container = document.getElementById("trips-list-container");
+          container.innerHTML = "";
+          
+          if(!trips || trips.length === 0) {
+            container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400 font-bold bg-white/60 rounded-2xl border border-dashed border-slate-300">ไม่พบคิวทริปท่องเที่ยวในฐานข้อมูล<br>กดปุ่ม + เพื่อสร้างทริปใหม่ได้ทันทีครับ</div>`;
+            return;
+          }
 
-        trips.forEach(t => {
-          let actionBtn = `<button onclick="enterTripDashboard('${t.id}')" class="btn btn-sm btn-primary text-white text-xs font-black rounded-xl px-4 h-8 min-h-0">เข้าสู่ทริป ➔</button>`;
-          container.innerHTML += `
-            <div class="card bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs">
-              <div class="flex justify-between items-start gap-2">
-                <div class="min-w-0 flex-1">
-                  <h4 class="font-black text-slate-800 text-base">🗺️ ${t.title}</h4>
-                  <p class="text-xs text-slate-400 font-bold truncate mt-0.5">${t.desc || 'ไม่มีคำอธิบาย'}</p>
+          trips.forEach(t => {
+            let actionBtn = `<button onclick="enterTripDashboard('${t.id}')" class="btn btn-sm btn-primary text-white text-xs font-black rounded-xl px-4 h-8 min-h-0">เข้าสู่ทริป ➔</button>`;
+            container.innerHTML += `
+              <div class="card bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs">
+                <div class="flex justify-between items-start gap-2">
+                  <div class="min-w-0 flex-1">
+                    <h4 class="font-black text-slate-800 text-base">🗺️ ${t.title}</h4>
+                    <p class="text-xs text-slate-400 font-bold truncate mt-0.5">${t.desc || 'ไม่มีคำอธิบาย'}</p>
+                  </div>
                 </div>
-              </div>
-              <div class="flex justify-between items-center border-t border-slate-100 pt-3 mt-3">
-                <span class="text-[10px] text-slate-400 font-black">Trip ID: ${t.id}</span>
-                ${actionBtn}
-              </div>
-            </div>`;
+                <div class="flex justify-between items-center border-t border-slate-100 pt-3 mt-3">
+                  <span class="text-[10px] text-slate-400 font-black">Trip ID: ${t.id}</span>
+                  ${actionBtn}
+                </div>
+              </div>`;
+          });
         });
-      }).getAllTrips(); 
     }
 
     function enterTripDashboard(tripId) {
       currentTripId = tripId;
       showLoading("กำลังโหลดข้อมูลทริป...");
       
-      google.script.run.withSuccessHandler(function(data) {
-        Swal.close();
-        if(!data || !data.success) return;
+      callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${tripId}`)
+        .then(data => {
+          Swal.close();
+          if(!data || !data.success) return;
 
-        document.getElementById("dash-trip-title").innerText = "ระบบบัญชีกลุ่มทริป";
-        cachedActiveTripMembersList = data.members || [];
-        globalItineraryDataCached = data.itinerary || [];
+          document.getElementById("dash-trip-title").innerText = "ระบบบัญชีกลุ่มทริป";
+          cachedActiveTripMembersList = data.members || [];
+          globalItineraryDataCached = data.itinerary || [];
 
-        const hostBox = document.getElementById("host-approval-box");
-        const pendingContainer = document.getElementById("pending-members-list");
-        if (hostBox && pendingContainer) {
-          pendingContainer.innerHTML = "";
-          const isIHost = (data.members || []).some(m => m.id === currentUser.id && m.role === "Host");
-          if (isIHost && data.pendingMembers && data.pendingMembers.length > 0) {
-            hostBox.classList.remove("hidden");
-            data.pendingMembers.forEach(pm => {
-              pendingContainer.innerHTML += `<div class="flex items-center justify-between bg-white p-2 rounded-xl border border-amber-200 text-xs"><span class="font-bold">${pm.icon} ${pm.name}</span><div class="flex gap-1"><button onclick="handleMemberAction('${pm.id}', 'reject')" class="btn btn-2xs btn-error text-white font-bold">ปฏิเสธ</button><button onclick="handleMemberAction('${pm.id}', 'accept')" class="btn btn-2xs btn-success text-white font-bold">อนุมัติ ✅</button></div></div>`;
+          // Host Control Box คำขออนุมัติเข้าทริป
+          const hostBox = document.getElementById("host-approval-box");
+          const pendingContainer = document.getElementById("pending-members-list");
+          if (hostBox && pendingContainer) {
+            pendingContainer.innerHTML = "";
+            const isIHost = (data.members || []).some(m => m.id === currentUser.id && m.role === "Host");
+            if (isIHost && data.pendingMembers && data.pendingMembers.length > 0) {
+              hostBox.classList.remove("hidden");
+              data.pendingMembers.forEach(pm => {
+                pendingContainer.innerHTML += `<div class="flex items-center justify-between bg-white p-2 rounded-xl border border-amber-200 text-xs"><span class="font-bold">${pm.icon} ${pm.name}</span><div class="flex gap-1"><button onclick="handleMemberAction('${pm.id}', 'reject')" class="btn btn-2xs btn-error text-white font-bold">ปฏิเสธ</button><button onclick="handleMemberAction('${pm.id}', 'accept')" class="btn btn-2xs btn-success text-white font-bold">อนุมัติ ✅</button></div></div>`;
+              });
+            } else { hostBox.classList.add("hidden"); }
+          }
+
+          // แผงเลือกแถบปฏิทินเดินทาง Timeline
+          let existingTabs = document.getElementById("itinerary-day-tabs-bar"); if(existingTabs) existingTabs.remove();
+          const tabsBar = document.createElement("div"); tabsBar.id = "itinerary-day-tabs-bar"; tabsBar.className = "flex gap-2 overflow-x-auto pb-2 mb-3 w-full mt-2 scrollbar-none shrink-0";
+          let uniqueDates = [...new Set(globalItineraryDataCached.map(item => item.date))].sort();
+          const timelineEl = document.getElementById("itinerary-timeline");
+          if(uniqueDates.length > 0 && timelineEl) {
+            if(activeSelectedDayDate === "" || !uniqueDates.includes(activeSelectedDayDate)) activeSelectedDayDate = uniqueDates[0];
+            uniqueDates.forEach(dStr => {
+              let activeClass = (activeSelectedDayDate === dStr) ? "btn btn-sm btn-primary text-white font-black rounded-xl" : "btn btn-sm bg-slate-100 border-2 border-slate-200 font-bold rounded-xl";
+              tabsBar.innerHTML += `<button onclick="changeActiveDayTab('${dStr}')" class="${activeClass}">${dStr}</button>`;
             });
-          } else { hostBox.classList.add("hidden"); }
-        }
+            if(timelineEl.parentNode) timelineEl.parentNode.insertBefore(tabsBar, timelineEl);
+          }
+          renderItineraryTimeline();
 
-        let existingTabs = document.getElementById("itinerary-day-tabs-bar"); if(existingTabs) existingTabs.remove();
-        const tabsBar = document.createElement("div"); tabsBar.id = "itinerary-day-tabs-bar"; tabsBar.className = "flex gap-2 overflow-x-auto pb-2 mb-3 w-full mt-2 scrollbar-none shrink-0";
-        let uniqueDates = [...new Set(globalItineraryDataCached.map(item => item.date))].sort();
-        const timelineEl = document.getElementById("itinerary-timeline");
-        if(uniqueDates.length > 0 && timelineEl) {
-          if(activeSelectedDayDate === "" || !uniqueDates.includes(activeSelectedDayDate)) activeSelectedDayDate = uniqueDates[0];
-          uniqueDates.forEach(dStr => {
-            let activeClass = (activeSelectedDayDate === dStr) ? "btn btn-sm btn-primary text-white font-black rounded-xl" : "btn btn-sm bg-slate-100 border-2 border-slate-200 font-bold rounded-xl";
-            tabsBar.innerHTML += `<button onclick="changeActiveDayTab('${dStr}')" class="${activeClass}">${dStr}</button>`;
-          });
-          if(timelineEl.parentNode) timelineEl.parentNode.insertBefore(tabsBar, timelineEl);
-        }
-        renderItineraryTimeline();
-
-        let safeTotalCost = 0;
-        if (data.tab4Report && data.tab4Report.length > 0) {
-          safeTotalCost = data.tab4Report.reduce((acc, curr) => acc + (isNaN(parseFloat(curr.paid)) ? 0 : parseFloat(curr.paid)), 0);
-        }
-        document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined, {minimumFractionDigits:2})} บาท`;
-        
-        // TAB 1
-        const t1Container = document.getElementById("tab1-list-container"); 
-        if(t1Container) {
-          t1Container.innerHTML = "";
-          (data.tab1Expenses || []).forEach((h) => {
-            let splitsHtml = (h.splits || []).map(s => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${s.name} ➔ ภาระ: ฿${parseFloat(s.share).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
-            let actionBtn = h.status === "Pending" ? `<button onclick="event.stopPropagation(); changeTab1BillStatus('${h.billId}', 'Closed')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px] px-2.5">ปิดยอด ✅</button>` : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">Closed</span>`;
-            const cId = `tab1-col-${h.billId}`;
-            t1Container.innerHTML += `
-              <div class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
-                <div onclick="document.getElementById('${cId}').classList.toggle('hidden');" class="pr-32 pl-4 py-3 text-xs cursor-pointer hover:bg-slate-100">
-                  <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
-                  <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName}</span>
-                  <div class="font-black text-slate-700 mt-1.5 text-sm">ยอดเงินสด: ฿${parseFloat(h.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
-                </div>
-                <div class="absolute right-3 top-2.5 flex items-center gap-1.5 z-30">${actionBtn} <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500"><i class="fa-solid fa-trash-can text-xs"></i></button></div>
-                <div id="${cId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${splitsHtml}</div>
-              </div>`;
-          });
-        }
-
-        // TAB 2
-        const t2Container = document.getElementById("tab2-list-container"); 
-        if(t2Container) {
-          t2Container.innerHTML = "";
-          (data.tab2Deposits || []).forEach((h) => {
-            let detailsHtml = (h.details || []).map(d => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${d.name} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
-            let actionBtn = h.status === "Awaiting_Final" ? `<button onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-7 min-h-0 text-[10px] px-2">อัพเดทจ่ายเงิน 🏨</button>` : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">${h.status === "Ready_To_Settle" ? "รอจ่าย" : "จ่ายแล้ว"}</span>`;
-            const cId = `tab2-col-${h.depId}`;
-            t2Container.innerHTML += `
-              <div class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
-                <div onclick="document.getElementById('${cId}').classList.toggle('hidden');" class="pl-4 py-3 pr-4 text-xs cursor-pointer hover:bg-slate-100">
-                  <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
-                  <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-                </div>
-                <div class="tab2-action-group">
-                  <span class="text-[10px] font-bold text-slate-500 mr-auto">วันจริงจ่ายเพิ่ม: <b class="text-slate-700">฿${parseFloat(h.finalPaid).toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
-                  ${actionBtn}
-                  <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500"><i class="fa-solid fa-trash-can text-xs"></i></button>
-                </div>
-                <div id="${cId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${detailsHtml}</div>
-              </div>`;
-          });
-        }
-
-        // TAB 3
-        const t3Container = document.getElementById("tab3-list-container"); 
-        if(t3Container) {
-          t3Container.innerHTML = "";
-          if(!data.tab3Settlements || data.tab3Settlements.length === 0) { 
-            t3Container.innerHTML = `<div class="text-center py-4 text-xs font-bold bg-slate-50 rounded-xl border border-dashed">ไม่มีคิวจับคู่โอนเคลียร์หนี้เงินมัดจำ</div>`; 
-          } else {
-            data.tab3Settlements.forEach(s => {
-              let rowHtml = (s.instructions || []).map(ins => `<div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-100 font-bold"><span>${ins.fromName} โอนให้ ➔ <b>${ins.toName}</b></span><span class="text-primary font-black">฿${parseFloat(ins.amount).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</span></div>`).join("");
-              t3Container.innerHTML += `
-                <div class="card bg-white border-2 border-slate-200 p-4 rounded-2xl flex flex-col gap-1.5">
-                  <div class="font-black text-sm border-b pb-2 flex justify-between items-center"><span>🏨 บิลมัดจำ: ${s.note}</span><button onclick="closeDepositJob('${s.depId}')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px]">ยืนยันจ่ายเงินเรียบร้อย 🔒</button></div>
-                  <div class="flex flex-col gap-1 mt-1">${rowHtml}</div>
+          // แสดงผลยอดรวมสะสม
+          let safeTotalCost = 0;
+          if (data.tab4Report && data.tab4Report.length > 0) {
+            safeTotalCost = data.tab4Report.reduce((acc, curr) => acc + (isNaN(parseFloat(curr.paid)) ? 0 : parseFloat(curr.paid)), 0);
+          }
+          document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined, {minimumFractionDigits:2})} บาท`;
+          
+          // TAB 1: บิลทั่วไป
+          const t1Container = document.getElementById("tab1-list-container"); 
+          if(t1Container) {
+            t1Container.innerHTML = "";
+            (data.tab1Expenses || []).forEach((h) => {
+              let splitsHtml = (h.splits || []).map(s => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${s.name} ➔ ภาระ: ฿${parseFloat(s.share).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
+              let actionBtn = h.status === "Pending" ? `<button onclick="event.stopPropagation(); changeTab1BillStatus('${h.billId}', 'Closed')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px] px-2.5">ปิดยอด ✅</button>` : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">Closed</span>`;
+              const cId = `tab1-col-${h.billId}`;
+              t1Container.innerHTML += `
+                <div class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
+                  <div onclick="document.getElementById('${cId}').classList.toggle('hidden');" class="pr-32 pl-4 py-3 text-xs cursor-pointer hover:bg-slate-100">
+                    <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+                    <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName}</span>
+                    <div class="font-black text-slate-700 mt-1.5 text-sm">ยอดเงินสด: ฿${parseFloat(h.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
+                  </div>
+                  <div class="absolute right-3 top-2.5 flex items-center gap-1.5 z-30">${actionBtn} <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500"><i class="fa-solid fa-trash-can text-xs"></i></button></div>
+                  <div id="${cId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${splitsHtml}</div>
                 </div>`;
             });
           }
-        }
 
-        // TAB 4
-        const t4Container = document.getElementById("tab4-list-container"); 
-        if(t4Container) {
-          t4Container.innerHTML = "";
-          (data.tab4Report || []).forEach(r => {
-            t4Container.innerHTML += `<div class="flex justify-between items-center p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"><span>${r.name}</span><span class="text-primary font-black">฿${parseFloat(r.paid).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</span></div>`;
-          });
-        }
+          // TAB 2: บิลมัดจำ
+          const t2Container = document.getElementById("tab2-list-container"); 
+          if(t2Container) {
+            t2Container.innerHTML = "";
+            (data.tab2Deposits || []).forEach((h) => {
+              let detailsHtml = (h.details || []).map(d => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${d.name} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
+              let actionBtn = h.status === "Awaiting_Final" ? `<button onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-7 min-h-0 text-[10px] px-2">อัพเดทจ่ายเงิน 🏨</button>` : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">${h.status === "Ready_To_Settle" ? "รอจ่าย" : "จ่ายแล้ว"}</span>`;
+              const cId = `tab2-col-${h.depId}`;
+              t2Container.innerHTML += `
+                <div class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
+                  <div onclick="document.getElementById('${cId}').classList.toggle('hidden');" class="pl-4 py-3 pr-4 text-xs cursor-pointer hover:bg-slate-100">
+                    <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+                    <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                  </div>
+                  <div class="tab2-action-group">
+                    <span class="text-[10px] font-bold text-slate-500 mr-auto">วันจริงจ่ายเพิ่ม: <b class="text-slate-700">฿${parseFloat(h.finalPaid).toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
+                    ${actionBtn}
+                    <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                  </div>
+                  <div id="${cId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${detailsHtml}</div>
+                </div>`;
+            });
+          }
 
-        const currentActiveViewId = currentUser ? "view-dashboard" : "view-login";
-        switchToView(currentActiveViewId);
-      }).getTripFinancialData(tripId);
+          // TAB 3: เฉลี่ยเคลียร์หนี้
+          const t3Container = document.getElementById("tab3-list-container"); 
+          if(t3Container) {
+            t3Container.innerHTML = "";
+            if(!data.tab3Settlements || data.tab3Settlements.length === 0) { 
+              t3Container.innerHTML = `<div class="text-center py-4 text-xs font-bold bg-slate-50 rounded-xl border border-dashed">ไม่มีคิวจับคู่โอนเคลียร์หนี้เงินมัดจำ</div>`; 
+            } else {
+              data.tab3Settlements.forEach(s => {
+                let rowHtml = (s.instructions || []).map(ins => `<div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-100 font-bold"><span>${ins.fromName} โอนให้ ➔ <b>${ins.toName}</b></span><span class="text-primary font-black">฿${parseFloat(ins.amount).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</span></div>`).join("");
+                t3Container.innerHTML += `
+                  <div class="card bg-white border-2 border-slate-200 p-4 rounded-2xl flex flex-col gap-1.5">
+                    <div class="font-black text-sm border-b pb-2 flex justify-between items-center"><span>🏨 บิลมัดจำ: ${s.note}</span><button onclick="closeDepositJob('${s.depId}')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px]">ยืนยันจ่ายเงินเรียบร้อย 🔒</button></div>
+                    <div class="flex flex-col gap-1 mt-1">${rowHtml}</div>
+                  </div>`;
+              });
+            }
+          }
+
+          // TAB 4: รายงานบุคคล
+          const t4Container = document.getElementById("tab4-list-container"); 
+          if(t4Container) {
+            t4Container.innerHTML = "";
+            (data.tab4Report || []).forEach(r => {
+              t4Container.innerHTML += `<div class="flex justify-between items-center p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"><span>${r.name}</span><span class="text-primary font-black">฿${parseFloat(r.paid).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</span></div>`;
+            });
+          }
+
+          switchToView("view-dashboard");
+        });
     }
 
     function switchToView(viewId) {
@@ -630,47 +700,68 @@
 
     function silentSyncFinancialData() {
       if (!currentTripId) return;
-      google.script.run.withSuccessHandler(function(freshData) {
-        if (freshData && freshData.success) {
-          cachedActiveTripMembersList = freshData.members || [];
-          let safeTotalCost = 0;
-          if (freshData.tab4Report && freshData.tab4Report.length > 0) {
-            safeTotalCost = freshData.tab4Report.reduce((acc, curr) => acc + (isNaN(parseFloat(curr.paid)) ? 0 : parseFloat(curr.paid)), 0);
+      callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${currentTripId}`)
+        .then(freshData => {
+          if (freshData && freshData.success) {
+            cachedActiveTripMembersList = freshData.members || [];
+            let safeTotalCost = 0;
+            if (freshData.tab4Report && freshData.tab4Report.length > 0) {
+              safeTotalCost = freshData.tab4Report.reduce((acc, curr) => acc + (isNaN(parseFloat(curr.paid)) ? 0 : parseFloat(curr.paid)), 0);
+            }
+            const costDisplay = document.getElementById("cost-total-display");
+            if (costDisplay) costDisplay.innerText = `฿${safeTotalCost.toLocaleString(undefined, {minimumFractionDigits: 2})} บาท`;
+            enterTripDashboard(currentTripId);
           }
-          const costDisplay = document.getElementById("cost-total-display");
-          if (costDisplay) costDisplay.innerText = `฿${safeTotalCost.toLocaleString(undefined, {minimumFractionDigits: 2})} บาท`;
-          enterTripDashboard(currentTripId);
-        }
-      }).getTripFinancialData(currentTripId);
+        });
     }
 
     function handleRegisterUserSubmit() {
-      const name = document.getElementById("reg-user-name").value.trim(), icon = document.getElementById("reg-user-icon").value.trim(), pin = document.getElementById("reg-user-pin").value.trim();
+      const name = document.getElementById("reg-user-name").value.trim();
+      const icon = document.getElementById("reg-user-icon").value.trim();
+      const pin = document.getElementById("reg-user-pin").value.trim();
       if(!name || !icon || !pin) return Swal.fire("ล้มเหลว", "กรอกข้อมูลไม่ครบ", "warning");
+      
       showLoading("กำลังลงบันทึกโปรไฟล์ใหม่...");
-      google.script.run.withSuccessHandler(function(res) {
-        Swal.close();
-        if(res.success) {
-          closeBottomSheet("modal-register-user"); document.getElementById("reg-user-name").value = "";
-          Swal.fire("ลงทะเบียนสำเร็จ", "พร้อมใช้งานแล้ว เลือกชื่อแล้วล็อกอินได้เลย!", "success").then(() => { window.location.reload(); });
-        } else { Swal.fire("เกิดข้อผิดพลาด", res.error || "ชื่ออาจจะซ้ำในระบบ", "error"); }
-      }).addNewUser(name, icon, pin); 
+      callAPI(WEB_APP_URL, 'POST', { action: "addNewUser", name: name, icon: icon, pin: pin })
+        .then(res => {
+          Swal.close();
+          if(res.success) {
+            closeBottomSheet("modal-register-user"); document.getElementById("reg-user-name").value = "";
+            Swal.fire("ลงทะเบียนสำเร็จ", "พร้อมใช้งานแล้ว เลือกชื่อแล้วล็อกอินได้เลย!", "success").then(() => { window.location.reload(); });
+          } else { Swal.fire("เกิดข้อผิดพลาด", res.error || "ชื่ออาจจะซ้ำในระบบ", "error"); }
+        });
     }
 
     function handleCreateTrip() { 
-      const title = document.getElementById("trip-title").value.trim(), desc = document.getElementById("trip-desc").value.trim(); 
-      if(!title) return; showLoading("กำลังสร้างห้องทริปใหม่..."); 
-      google.script.run.withSuccessHandler(function() { Swal.close(); renderTripsList(); }).createTrip(title, desc, currentUser.id); 
+      const title = document.getElementById("trip-title").value.trim();
+      const desc = document.getElementById("trip-desc").value.trim(); 
+      if(!title) return; 
+      
+      showLoading("กำลังสร้างห้องทริปใหม่..."); 
+      callAPI(WEB_APP_URL, 'POST', { action: "createTrip", title: title, desc: desc, hostId: currentUser.id })
+        .then(() => { Swal.close(); renderTripsList(); });
     }
-    function backToTrips() { switchToView("view-trips"); renderTripsList(); }
-    function backToLogin() { currentUser = null; switchToView("view-login"); }
-    function changeActiveDayTab(dStr) { activeSelectedDayDate = dStr; enterTripDashboard(currentTripId); }
-    function closeDepositJob(depId) { if(window.event) window.event.stopPropagation(); showLoading("กำลังปิดบิลโครงการมัดจำ..."); google.script.run.withSuccessHandler(function(res) { activeCurrentFinTabIdx = 4; silentSyncFinancialData(); }).closeDepositStatus(depId, "Archived"); }
-    function deleteTab1Bill(billId) { Swal.fire({ title: "ลบบิลทั่วไปนี้?", icon: "warning", showCancelButton: true, confirmButtonColor: "#ef4444", confirmButtonText: "ลบเลย 🗑️" }).then((result) => { if (result.isConfirmed) { showLoading("กำลังลบบิล..."); google.script.run.withSuccessHandler(function() { silentSyncFinancialData(); }).deleteExpenseNew(billId); } }); }
-    function deleteTab2Bill(depId) { Swal.fire({ title: "ลบบิลมัดจำนี้?", icon: "warning", showCancelButton: true, confirmButtonColor: "#ef4444", confirmButtonText: "ลบเลย 🗑️" }).then((result) => { if (result.isConfirmed) { showLoading("กำลังลบบิลมัดจำ..."); google.script.run.withSuccessHandler(function() { silentSyncFinancialData(); }).deleteDepositFull(depId); } }); }
-    function requestJoin(tripId) { showLoading("กำลังส่งคำขอเข้ากลุ่ม..."); google.script.run.withSuccessHandler(function() { Swal.close(); renderTripsList(); }).requestToJoinTrip(tripId, currentUser.id); }
-    function handleRegisterItinerary() { const date = document.getElementById("iti-date").value, time = document.getElementById("iti-time").value, act = document.getElementById("iti-act").value.trim(), loc = document.getElementById("iti-loc").value.trim(), map = document.getElementById("iti-map").value.trim(); if(!date || !time || !act || !loc) return; showLoading("กำลังลงบันทึกแผนเดินทาง..."); google.script.run.withSuccessHandler(function(res) { Swal.close(); if(res.success) { closeBottomSheet("modal-add-itinerary"); activeSelectedDayDate = date; enterTripDashboard(currentTripId); } }).addItinerary(currentTripId, date, time, act, loc, map); }
-    
+
+    function handleRegisterItinerary() { 
+      const date = document.getElementById("iti-date").value;
+      const time = document.getElementById("iti-time").value;
+      const act = document.getElementById("iti-act").value.trim();
+      const loc = document.getElementById("iti-loc").value.trim();
+      const map = document.getElementById("iti-map").value.trim();
+      if(!date || !time || !act || !loc) return;
+      
+      showLoading("กำลังลงบันทึกแผนเดินทาง..."); 
+      callAPI(WEB_APP_URL, 'POST', { action: "addItinerary", tripId: currentTripId, date: date, time: time, activity: act, location: loc, mapUrl: map })
+        .then(res => { 
+          Swal.close(); 
+          if(res.success) { 
+            closeBottomSheet("modal-add-itinerary"); 
+            activeSelectedDayDate = date; 
+            enterTripDashboard(currentTripId); 
+          } 
+        }); 
+    }
+
     function renderItineraryTimeline() { 
       const itiContainer = document.getElementById("itinerary-timeline"); itiContainer.innerHTML = ""; 
       let filtered = globalItineraryDataCached.filter(item => item.date === activeSelectedDayDate); 
@@ -695,14 +786,106 @@
           </div>`; 
       }); 
     }
+
+    function handleMemberAction(targetUserId, actionType) {
+      showLoading("กำลังประมวลผลสิทธิ์สมาชิก...");
+      callAPI(WEB_APP_URL, 'POST', { action: "handleMemberAction", tripId: currentTripId, targetUserId: targetUserId, type: actionType })
+        .then(() => { Swal.close(); enterTripDashboard(currentTripId); });
+    }
     
-    function changeTab1BillStatus(billId, status) { google.script.run.withSuccessHandler(function() { silentSyncFinancialData(); }).updateExpenseNewStatus(billId, status); }
-    function submitTab1Expense() { const amt = document.getElementById("t1-amount").value, note = document.getElementById("t1-note").value.trim(), cat = document.getElementById("t1-cat").value; if(!amt || parseFloat(amt) <= 0 || !note) return Swal.fire("แจ้งเตือน", "กรอกข้อมูลไม่ครบถ้วน", "warning"); const chks = document.getElementsByName("chk-t1-user"); const splitArray = []; for(let i=0; i<chks.length; i++) { if(chks[i].checked) splitArray.push(chks[i].value); } if(splitArray.length === 0) return Swal.fire("แจ้งเตือน", "เลือกตัวหารอย่างน้อย 1 คนครับ", "warning"); closeBottomSheet("modal-add-tab1"); showLoading("กำลังลงบันทึกบิล..."); google.script.run.withSuccessHandler(function(res) { if(res.success) { document.getElementById("t1-amount").value = ""; document.getElementById("t1-note").value = ""; silentSyncFinancialData(); } }).addExpenseNew(currentTripId, note, cat, amt, currentUser.id, splitArray); }
-    function submitTab2DepositMaster() { const fullCost = parseFloat(document.getElementById("t2-fullcost").value) || 0, note = document.getElementById("t2-note").value.trim(), cat = document.getElementById("t2-cat").value; if(fullCost <= 0 || !note) return Swal.fire("แจ้งเตือน", "ข้อมูลไม่ครบ", "warning"); const chks = document.getElementsByName("chk-t2-user"); const splitsArray = []; let totalDepositSum = 0; for (let i = 0; i < chks.length; i++) { const uId = chks[i].value, isTarget = chks[i].checked; const depAmt = parseFloat(document.getElementById(`input-t2-depamt-${uId}`).value) || 0; totalDepositSum += depAmt; splitsArray.push({ userId: uId, isTarget: isTarget, depositAmount: depAmt }); } if(totalDepositSum > fullCost) return Swal.fire("ล้มเหลว", `ยอดมัดจำรวม (${totalDepositSum} บ.) ห้ามเกินราคาเต็มเด็ดขาด (${fullCost} บ.)`, "error"); closeBottomSheet("modal-add-tab2-master"); showLoading("กำลังบันทึกโครงการมัดจำ..."); google.script.run.withSuccessHandler(function(res) { if(res.success) { document.getElementById("t2-fullcost").value = ""; document.getElementById("t2-note").value = ""; silentSyncFinancialData(); } }).addDepositMaster(currentTripId, note, cat, fullCost, splitsArray); }
-    function openFinalPaymentModal(depId, note, fullCost, totalDeposit) { if(window.event) window.event.stopPropagation(); document.getElementById("t2-final-depid").value = depId; const expectedPaid = fullCost - totalDeposit; document.getElementById("t2-final-expected-paid").value = expectedPaid; document.getElementById("t2-final-paid-input").value = expectedPaid; document.getElementById("t2-final-info-label").innerText = `บิล: ${note} | ราคาเต็ม ฿${fullCost} - มัดจำแล้ว ฿${totalDeposit} = จ่ายเพิ่มหน้างานต้องเท่ากับ ฿${expectedPaid} บาทพอดี`; const select = document.getElementById("t2-final-payer-select"); select.innerHTML = ""; cachedActiveTripMembersList.forEach(m => { select.innerHTML += `<option value="${m.id}">${m.icon} ${m.name}</option>`; }); openBottomSheet("modal-add-tab2-final"); }
-    function submitTab2FinalPayment() { const depId = document.getElementById("t2-final-depid").value, payerId = document.getElementById("t2-final-payer-select").value; const paidInput = parseFloat(document.getElementById("t2-final-paid-input").value) || 0, expected = parseFloat(document.getElementById("t2-final-expected-paid").value) || 0; if(Math.abs(paidInput - expected) > 0.01) return Swal.fire("ยอดไม่ตรง!", `ระบบต้องการยอดจ่ายวันจริงเท่ากับ ฿${expected} บาทถ้วนเท่านั้น!`, "error"); closeBottomSheet("modal-add-tab2-final"); showLoading("กำลังบันทึกส่วนต่างจ่ายจริง..."); google.script.run.withSuccessHandler(function(res) { if(res.success) { activeCurrentFinTabIdx = 3; silentSyncFinancialData(); } }).updateDepositFinalPayment(depId, paidInput, payerId); }
+    function changeTab1BillStatus(billId, status) { 
+      callAPI(WEB_APP_URL, 'POST', { action: "updateExpenseNewStatus", billId: billId, status: status })
+        .then(() => silentSyncFinancialData()); 
+    }
+    
+    function submitTab1Expense() { 
+      const amt = document.getElementById("t1-amount").value;
+      const note = document.getElementById("t1-note").value.trim();
+      const cat = document.getElementById("t1-cat").value;
+      if(!amt || parseFloat(amt) <= 0 || !note) return Swal.fire("แจ้งเตือน", "กรอกข้อมูลไม่ครบถ้วน", "warning");
+      const chks = document.getElementsByName("chk-t1-user");
+      const splitArray = []; for(let i=0; i<chks.length; i++) { if(chks[i].checked) splitArray.push(chks[i].value); }
+      if(splitArray.length === 0) return Swal.fire("แจ้งเตือน", "เลือกตัวหารอย่างน้อย 1 คนครับ", "warning");
+      
+      closeBottomSheet("modal-add-tab1"); showLoading("กำลังลงบันทึกบิล...");
+      callAPI(WEB_APP_URL, 'POST', { action: "addExpenseNew", tripId: currentTripId, note: note, category: cat, totalAmount: amt, payerId: currentUser.id, splits: splitArray })
+        .then(res => { if(res.success) { document.getElementById("t1-amount").value = ""; document.getElementById("t1-note").value = ""; silentSyncFinancialData(); } });
+    }
+
+    function buildTab2DynamicMembersForm() {
+      const zone = document.getElementById("t2-deposit-members-injector"); zone.innerHTML = "";
+      cachedActiveTripMembersList.forEach(m => {
+        zone.innerHTML += `<div class="flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-xl gap-2"><label class="flex items-center gap-2 text-xs font-black text-slate-700 min-w-0 flex-1 cursor-pointer truncate"><input type="checkbox" name="chk-t2-user" id="chk-t2-target-${m.id}" value="${m.id}" checked class="checkbox checkbox-secondary checkbox-sm rounded-md" style="background-color:transparent !important;"><span class="truncate">${m.icon} ${m.name}</span></label><div class="flex items-center gap-1 shrink-0 w-36"><span class="text-[10px] text-slate-400 font-bold">มัดจำ:</span><input type="number" id="input-t2-depamt-${m.id}" value="0" min="0" class="input input-bordered input-xs w-full text-right font-bold text-slate-800 bg-white"><span class="text-[10px] text-slate-400 font-bold">บาท</span></div></div>`;
+      });
+    }
+
+    function submitTab2DepositMaster() { 
+      const fullCost = parseFloat(document.getElementById("t2-fullcost").value) || 0;
+      const note = document.getElementById("t2-note").value.trim();
+      const cat = document.getElementById("t2-cat").value;
+      if(fullCost <= 0 || !note) return Swal.fire("แจ้งเตือน", "ข้อมูลไม่ครบ", "warning");
+      
+      const chks = document.getElementsByName("chk-t2-user"); const splitsArray = []; let totalDepositSum = 0;
+      for (let i = 0; i < chks.length; i++) {
+        const uId = chks[i].value, isTarget = chks[i].checked;
+        const depAmt = parseFloat(document.getElementById(`input-t2-depamt-${uId}`).value) || 0;
+        totalDepositSum += depAmt; splitsArray.push({ userId: uId, isTarget: isTarget, depositAmount: depAmt });
+      }
+      if(totalDepositSum > fullCost) return Swal.fire("ล้มเหลว", `ยอดมัดจำรวม (${totalDepositSum} บ.) ห้ามเกินราคาเต็ม (${fullCost} บ.)`, "error");
+      
+      closeBottomSheet("modal-add-tab2-master"); showLoading("กำลังบันทึกโครงการมัดจำ...");
+      callAPI(WEB_APP_URL, 'POST', { action: "addDepositMaster", tripId: currentTripId, note: note, category: cat, fullCost: fullCost, splits: splitsArray })
+        .then(res => { if(res.success) { document.getElementById("t2-fullcost").value = ""; document.getElementById("t2-note").value = ""; silentSyncFinancialData(); } });
+    }
+
+    function openFinalPaymentModal(depId, note, fullCost, totalDeposit) { 
+      if(window.event) window.event.stopPropagation(); 
+      document.getElementById("t2-final-depid").value = depId; 
+      const expectedPaid = fullCost - totalDeposit; 
+      document.getElementById("t2-final-expected-paid").value = expectedPaid; 
+      document.getElementById("t2-final-paid-input").value = expectedPaid; 
+      document.getElementById("t2-final-info-label").innerText = `บิล: ${note} | ราคาเต็ม ฿${fullCost} - มัดจำแล้ว ฿${totalDeposit} = จ่ายเพิ่มหน้างานต้วงเท่ากับ ฿${expectedPaid} บาท`; 
+      const select = document.getElementById("t2-final-payer-select"); select.innerHTML = ""; 
+      cachedActiveTripMembersList.forEach(m => { select.innerHTML += `<option value="${m.id}">${m.icon} ${m.name}</option>`; }); 
+      openBottomSheet("modal-add-tab2-final"); 
+    }
+
+    function submitTab2FinalPayment() { 
+      const depId = document.getElementById("t2-final-depid").value;
+      const payerId = document.getElementById("t2-final-payer-select").value;
+      const paidInput = parseFloat(document.getElementById("t2-final-paid-input").value) || 0;
+      const expected = parseFloat(document.getElementById("t2-final-expected-paid").value) || 0;
+      if(Math.abs(paidInput - expected) > 0.01) return Swal.fire("ยอดไม่ตรง!", `ระบบต้องการยอดจ่ายวันจริงเท่ากับ ฿${expected} บาทถ้วนเท่านั้น!`, "error");
+      
+      closeBottomSheet("modal-add-tab2-final"); showLoading("กำลังบันทึกส่วนต่างจ่ายจริง...");
+      callAPI(WEB_APP_URL, 'POST', { action: "updateDepositFinalPayment", depId: depId, finalPaid: paidInput, finalPayerId: payerId })
+        .then(res => { if(res.success) { activeCurrentFinTabIdx = 3; silentSyncFinancialData(); } });
+    }
+
+    function closeDepositJob(depId) { 
+      if(window.event) window.event.stopPropagation(); showLoading("กำลังปิดบิลโครงการมัดจำ..."); 
+      callAPI(WEB_APP_URL, 'POST', { action: "closeDepositStatus", depId: depId, status: "Archived" })
+        .then(() => { activeCurrentFinTabIdx = 4; silentSyncFinancialData(); });
+    }
+
+    function deleteTab1Bill(billId) { 
+      Swal.fire({ title: "ลบบิลทั่วไปนี้?", icon: "warning", showCancelButton: true, confirmButtonColor: "#ef4444", confirmButtonText: "ลบเลย 🗑️" }).then((result) => { 
+        if (result.isConfirmed) { showLoading("กำลังลบบิล..."); callAPI(WEB_APP_URL, 'POST', { action: "deleteExpenseNew", billId: billId }).then(() => silentSyncFinancialData()); } 
+      }); 
+    }
+    
+    function deleteTab2Bill(depId) { 
+      Swal.fire({ title: "ลบบิลมัดจำนี้?", icon: "warning", showCancelButton: true, confirmButtonColor: "#ef4444", confirmButtonText: "ลบเลย 🗑️" }).then((result) => { 
+        if (result.isConfirmed) { showLoading("กำลังลบบิลมัดจำ..."); callAPI(WEB_APP_URL, 'POST', { action: "deleteDepositFull", depId: depId }).then(() => silentSyncFinancialData()); } 
+      }); 
+    }
+
+    function backToTrips() { switchToView("view-trips"); renderTripsList(); }
+    function backToLogin() { currentUser = null; switchToView("view-login"); }
+    function changeActiveDayTab(dStr) { activeSelectedDayDate = dStr; enterTripDashboard(currentTripId); }
   </script>
   
+  <!-- 🔗 สคริปต์เปิดสิทธิ์การติดตั้ง PWA ลงบนหน้าจอหลักของสมาร์ตโฟน (ไฟล์ข้อ 2) -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js')
