@@ -660,33 +660,40 @@ function renderFullDashboardUI() {
   }); 
 }
 
-    function renderItineraryTimeline() { 
-  const itiContainer = document.getElementById("itinerary-timeline"); 
-  if (!itiContainer) return;
-  itiContainer.innerHTML = ""; 
-  if (!globalTripData) return;
-  
-  let filtered = (globalTripData.itinerary || []).filter(item => item.date === activeSelectedDayDate); 
-  if(filtered.length === 0) { 
-    itiContainer.innerHTML = `<div class="text-slate-400 text-xs py-8 font-bold text-center bg-slate-50 border border-dashed rounded-xl">ไม่มีกิจกรรมในวันนี้ครับ</div>`; 
-    return; 
-  } 
-  
-  filtered.sort((a, b) => (a.time || "").localeCompare(b.time || "")).forEach(item => { 
-    const map = item.mapUrl ? `<a href="${item.mapUrl}" target="_blank" class="btn btn-sm btn-circle btn-info text-white shadow-md ml-2 flex items-center justify-center w-8 h-8" style="background-color:#0284c7 !important; border:0;"><i class="fa-solid fa-location-dot text-xs"></i></a>` : ""; 
-    itiContainer.innerHTML += `
-      <div class="relative mb-3">
-        <span class="absolute -left-[21px] top-1.5 bg-primary w-2 h-2 rounded-full"></span>
-        <div class="text-xs font-black text-black bg-rose-200 border border-rose-300 px-2.5 py-0.5 rounded-md inline-block mb-1 shadow-3xs">⏰ เวลา ${item.time} น.</div>
-        <div class="bg-slate-50 border-2 border-slate-200 p-3 rounded-2xl flex justify-between items-center shadow-3xs">
-          <div class="min-w-0 flex-1">
-            <div class="font-black text-base text-slate-800 truncate">${item.activity}</div>
-            <div class="text-xs text-slate-400 font-bold truncate mt-0.5"><i class="fa-solid fa-map-pin mr-1 text-slate-300"></i>${item.location || 'ไม่ได้ระบุสถานที่'}</div>
-          </div>
-          <div class="shrink-0">${map}</div>
-        </div>
-      </div>`; 
-  }); 
+  function switchMainTab(tabName) {
+  const btnIti = document.getElementById("nav-btn-iti"), btnFin = document.getElementById("nav-btn-fin"), viewIti = document.getElementById("sub-view-itinerary"), viewFin = document.getElementById("sub-view-expenses");
+  if(tabName === "iti") { 
+    btnIti.className = "flex flex-col items-center justify-center text-primary transition-all bg-transparent border-0 outline-none"; 
+    btnFin.className = "flex flex-col items-center justify-center text-slate-400 transition-all bg-transparent border-0 outline-none"; 
+    if(viewIti) viewIti.classList.remove("hidden"); if(viewFin) viewFin.classList.add("hidden"); 
+  } else { 
+    btnIti.className = "flex flex-col items-center justify-center text-slate-400 transition-all bg-transparent border-0 outline-none"; 
+    btnFin.className = "flex flex-col items-center justify-center text-primary transition-all bg-transparent border-0 outline-none"; 
+    if(viewIti) viewIti.classList.add("hidden"); if(viewFin) viewFin.classList.remove("hidden"); 
+    switchFinTab(activeCurrentFinTabIdx);
+  }
+}
+
+function switchFinTab(tabIdx) {
+  activeCurrentFinTabIdx = tabIdx;
+  for(let i=1; i<=4; i++) {
+    const btn = document.getElementById(`tab-btn-${i}`); const content = document.getElementById(`fin-content-${i}`);
+    if(i === tabIdx) {
+      if(btn) btn.className = "tab tab-active flex-1 text-[11px] font-black rounded-lg px-1 truncate";
+      if(content) content.classList.remove("hidden");
+    } else {
+      if(btn) btn.className = "tab flex-1 text-[11px] font-black rounded-lg px-1 truncate bg-transparent text-slate-500";
+      if(btn) btn.style = "background-color:transparent !important; color:#475569 !important;";
+      if(content) content.classList.add("hidden");
+    }
+  }
+  const t1Zone = document.getElementById("t1-members-checkbox-zone");
+  if(t1Zone && tabIdx === 1 && globalTripData) {
+    t1Zone.innerHTML = "";
+    globalTripData.members.forEach(m => {
+      t1Zone.innerHTML += `<label class="flex items-center gap-2.5 p-2 bg-white border border-slate-200 rounded-xl cursor-pointer text-xs font-bold text-slate-700"><input type="checkbox" name="chk-t1-user" value="${m.id}" checked class="checkbox checkbox-primary checkbox-sm rounded-md"><span>${m.icon || '👤'} ${m.name}</span></label>`;
+    });
+  }
 }
     function openBottomSheet(id) {
       const el = document.getElementById(id); if(!el) return;
