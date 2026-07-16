@@ -1,0 +1,21 @@
+{
+  "name": "TravelSync Core V2",
+  "short_name": "TravelSync",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#570df8",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/fluent/192/000000/airplane-take-off.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://img.icons8.com/fluent/512/000000/airplane-take-off.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
