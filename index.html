@@ -622,13 +622,14 @@ function renderFullDashboardUI() {
 
   // TAB 4 รายงานสรุป
   const t4Container = document.getElementById("tab4-list-container"); 
-  if(t4Container) {
-    t4Container.innerHTML = "";
-    (data.tab4Report || []).forEach(r => {
-      t4Container.innerHTML += `<div class="flex justify-between items-center p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"><span>${r.name}</span><span class="text-primary font-black">฿${parseFloat(r.paid).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</span></div>`;
-    });
-  }
-} // 🔒 ฟังก์ชันใหม่จะจบที่ปีกกานี้อย่างสะอาด ไม่มีคำสั่ง API ของเก่ามาติ่งไว้
+        if(t4Container) {
+          t4Container.innerHTML = "";
+          ((data.tab4Report || [])).forEach(r => {
+            if(r && r.name) {
+              t4Container.innerHTML += `<div class="flex justify-between items-center p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"><span>${r.name}</span><span class="text-primary font-black">฿${parseFloat(r.paid || 0).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</span></div>`;
+            }
+          });
+        }
 
     function renderItineraryTimeline() { 
       const itiContainer = document.getElementById("itinerary-timeline"); itiContainer.innerHTML = ""; 
