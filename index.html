@@ -470,7 +470,7 @@
       
       callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${tripId}`).then(data => {
         Swal.close();
-        if(!data || !data) return;
+        if(!data) return; // 🎯 จุดที่ 3.1 แก้ไข: ปลดล็อกเงื่อนไขความสำเร็จ ป้องกันหน้าจอล็อกค้าง
 
         document.getElementById("dash-trip-title").innerText = "ระบบบัญชีกลุ่มทริป";
         cachedActiveTripMembersList = data.members || [];
@@ -492,27 +492,26 @@
 
         // 📅 จัดการแถบปุ่มเลือกสลับวันเดินทางประมวลผลอัตโนมัติ
         const tabsBar = document.getElementById("itinerary-day-tabs-bar");
-if (tabsBar) {
-  tabsBar.innerHTML = "";
-  // ดึงเฉพาะวันที่ที่มีอยู่จริง ไม่เป็นค่าว่าง และเรียงลำดับจากวันแรกไปวันสุดท้าย
-  let uniqueDates = [...new Set(globalItineraryDataCached.map(item => item.date).filter(Boolean))].sort();
-  
-  if (uniqueDates.length > 0) {
-    if (activeSelectedDayDate === "" || !uniqueDates.includes(activeSelectedDayDate)) {
-      activeSelectedDayDate = uniqueDates[0];
-    }
-    uniqueDates.forEach(dStr => {
-      let isSelected = (activeSelectedDayDate === dStr);
-      let btnClass = isSelected 
-        ? "btn btn-sm btn-primary text-white font-black rounded-xl text-xs px-3 shrink-0" 
-        : "btn btn-sm bg-slate-100 border border-slate-200 font-bold rounded-xl text-slate-600 text-xs px-3 shrink-0";
-      tabsBar.innerHTML += `<button type="button" onclick="changeActiveDayTab('${dStr}')" class="${btnClass}">${dStr}</button>`;
-    });
-  } else {
-    tabsBar.innerHTML = `<span class="text-[11px] text-slate-400 font-bold">ไม่มีการระบุวันที่ในแผนเดินทาง</span>`;
-  }
-}
-renderItineraryTimeline();
+        if (tabsBar) {
+          tabsBar.innerHTML = "";
+          let uniqueDates = [...new Set(globalItineraryDataCached.map(item => item.date).filter(Boolean))].sort();
+          
+          if (uniqueDates.length > 0) {
+            if (activeSelectedDayDate === "" || !uniqueDates.includes(activeSelectedDayDate)) {
+              activeSelectedDayDate = uniqueDates[0];
+            }
+            uniqueDates.forEach(dStr => {
+              let isSelected = (activeSelectedDayDate === dStr);
+              let btnClass = isSelected 
+                ? "btn btn-sm btn-primary text-white font-black rounded-xl text-xs px-3 shrink-0" 
+                : "btn btn-sm bg-slate-100 border border-slate-200 font-bold rounded-xl text-slate-600 text-xs px-3 shrink-0";
+              tabsBar.innerHTML += `<button type="button" onclick="changeActiveDayTab('${dStr}')" class="${btnClass}">${dStr}</button>`;
+            });
+          } else {
+            tabsBar.innerHTML = `<span class="text-[11px] text-slate-400 font-bold">ไม่มีการระบุวันที่ในแผนเดินทาง</span>`;
+          }
+        }
+        renderItineraryTimeline();
 
         // ยอดรวมสะสมและการเงิน
         let safeTotalCost = 0;
@@ -521,66 +520,67 @@ renderItineraryTimeline();
         }
         document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined, {minimumFractionDigits:2})} บาท`;
         
-        // TAB 1
+        // TAB 1 บิลทั่วไป
         const t1Container = document.getElementById("tab1-list-container"); 
-if (t1Container) {
-  t1Container.innerHTML = "";
-  if (!data.tab1Expenses || data.tab1Expenses.length === 0) {
-    t1Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบรายการบิลทั่วไป</div>`;
-  } else {
-    data.tab1Expenses.forEach((h) => {
-      let splitsHtml = (h.splits || []).map(s => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${s.name} ➔ ภาระ: ฿${parseFloat(s.share).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
-      let actionBtn = h.status === "Pending" 
-        ? `<button onclick="event.stopPropagation(); changeTab1BillStatus('${h.billId}', 'Closed')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px] px-2.5">ปิดยอด ✅</button>` 
-        : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">จ่ายจบแล้ว</span>`;
-      
-      t1Container.innerHTML += `
-        <div class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
-          <div onclick="document.getElementById('tab1-col-${h.billId}').classList.toggle('hidden');" class="pr-32 pl-4 py-3 text-xs cursor-pointer hover:bg-slate-100">
-            <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
-            <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName}</span>
-            <div class="font-black text-slate-700 mt-1.5 text-sm">ยอดเงินสด: ฿${parseFloat(h.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
-          </div>
-          <div class="absolute right-3 top-2.5 flex items-center gap-1.5 z-30">
-            ${actionBtn}
-            <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
-          </div>
-          <div id="tab1-col-${h.billId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${splitsHtml}</div>
-        </div>`;
-    });
-  }
-}
+        if (t1Container) {
+          t1Container.innerHTML = "";
+          if (!data.tab1Expenses || data.tab1Expenses.length === 0) {
+            t1Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบรายการบิลทั่วไป</div>`;
+          } else {
+            data.tab1Expenses.forEach((h) => {
+              let splitsHtml = (h.splits || []).map(s => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${s.name} ➔ ภาระ: ฿${parseFloat(s.share).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
+              let actionBtn = h.status === "Pending" 
+                ? `<button onclick="event.stopPropagation(); changeTab1BillStatus('${h.billId}', 'Closed')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px] px-2.5">ปิดยอด ✅</button>` 
+                : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">จ่ายจบแล้ว</span>`;
+              
+              t1Container.innerHTML += `
+                <div class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
+                  <div onclick="document.getElementById('tab1-col-${h.billId}').classList.toggle('hidden');" class="pr-32 pl-4 py-3 text-xs cursor-pointer hover:bg-slate-100">
+                    <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+                    <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName}</span>
+                    <div class="font-black text-slate-700 mt-1.5 text-sm">ยอดเงินสด: ฿${parseFloat(h.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
+                  </div>
+                  <div class="absolute right-3 top-2.5 flex items-center gap-1.5 z-30">
+                    ${actionBtn}
+                    <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                  </div>
+                  <div id="tab1-col-${h.billId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${splitsHtml}</div>
+                </div>`;
+            });
+          }
+        }
 
-// 🏨 พ่นข้อมูลบิลโครงการมัดจำ (Tab 2)
-const t2Container = document.getElementById("tab2-list-container"); 
-if (t2Container) {
-  t2Container.innerHTML = "";
-  if (!data.tab2Deposits || data.tab2Deposits.length === 0) {
-    t2Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบโครงการมัดจำ</div>`;
-  } else {
-    data.tab2Deposits.forEach((h) => {
-      let detailsHtml = (h.details || []).map(d => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${d.name} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
-      let actionBtn = h.status === "Awaiting_Final" 
-        ? `<button onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-7 min-h-0 text-[10px] px-2">อัพเดทจ่ายเงิน 🏨</button>` 
-        : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">${h.status === "Ready_To_Settle" ? "รอเคลียร์หนี้" : "ปิดโครงการ"}</span>`;
-      
-      t2Container.innerHTML += `
-        <div class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
-          <div onclick="document.getElementById('tab2-col-${h.depId}').classList.toggle('hidden');" class="pl-4 py-3 pr-4 text-xs cursor-pointer hover:bg-slate-100">
-            <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
-            <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-          </div>
-          <div class="tab2-action-group">
-            <span class="text-[10px] font-bold text-slate-500 mr-auto">วันจริงจ่ายเพิ่ม: <b class="text-slate-700">฿${parseFloat(h.finalPaid).toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
-            ${actionBtn}
-            <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
-          </div>
-          <div id="tab2-col-${h.depId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${detailsHtml}</div>
-        </div>`;
-    });
-  }
-}
-        // TAB 3
+        // 🏨 พ่นข้อมูลบิลโครงการมัดจำ (Tab 2)
+        const t2Container = document.getElementById("tab2-list-container"); 
+        if (t2Container) {
+          t2Container.innerHTML = "";
+          if (!data.tab2Deposits || data.tab2Deposits.length === 0) {
+            t2Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบโครงการมัดจำ</div>`;
+          } else {
+            data.tab2Deposits.forEach((h) => {
+              let detailsHtml = (h.details || []).map(d => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${d.name} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
+              let actionBtn = h.status === "Awaiting_Final" 
+                ? `<button onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-7 min-h-0 text-[10px] px-2">อัพเดทจ่ายเงิน 🏨</button>` 
+                : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">${h.status === "Ready_To_Settle" ? "รอเคลียร์หนี้" : "ปิดโครงการ"}</span>`;
+              
+              t2Container.innerHTML += `
+                <div class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
+                  <div onclick="document.getElementById('tab2-col-${h.depId}').classList.toggle('hidden');" class="pl-4 py-3 pr-4 text-xs cursor-pointer hover:bg-slate-100">
+                    <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+                    <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                  </div>
+                  <div class="tab2-action-group">
+                    <span class="text-[10px] font-bold text-slate-500 mr-auto">วันจริงจ่ายเพิ่ม: <b class="text-slate-700">฿${parseFloat(h.finalPaid).toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
+                    ${actionBtn}
+                    <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                  </div>
+                  <div id="tab2-col-${h.depId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${detailsHtml}</div>
+                </div>`;
+            });
+          }
+        }
+
+        // TAB 3 รายการจับคู่เคลียร์เงินมัดจำ
         const t3Container = document.getElementById("tab3-list-container"); 
         if(t3Container) {
           t3Container.innerHTML = "";
@@ -598,7 +598,7 @@ if (t2Container) {
           }
         }
 
-        // TAB 4
+        // TAB 4 รายงานสรุป
         const t4Container = document.getElementById("tab4-list-container"); 
         if(t4Container) {
           t4Container.innerHTML = "";
@@ -615,7 +615,13 @@ if (t2Container) {
       const itiContainer = document.getElementById("itinerary-timeline"); itiContainer.innerHTML = ""; 
       let filtered = globalItineraryDataCached.filter(item => item.date === activeSelectedDayDate); 
       if(filtered.length === 0) { itiContainer.innerHTML = `<div class="text-slate-400 text-xs py-8 font-bold text-center bg-slate-50 border border-dashed rounded-xl">ไม่มีกิจกรรมในวันนี้ครับ</div>`; return; } 
-      filtered.sort((a,b) => a.time.localeCompare(b.time)).forEach(item => { 
+      
+      // 🎯 จุดที่ 3.2 แก้ไข: เรียงลำดับเวลาอย่างปลอดภัย ป้องกันแอปพลิเคชันค้าง
+      filtered.sort((a, b) => {
+        let timeA = a.time || "";
+        let timeB = b.time || "";
+        return timeA.localeCompare(timeB);
+      }).forEach(item => { 
         const map = item.mapUrl ? `<a href="${item.mapUrl}" target="_blank" class="btn btn-sm btn-circle btn-info text-white shadow-md ml-2 flex items-center justify-center w-8 h-8" style="background-color:#0284c7 !important; border:0;"><i class="fa-solid fa-location-dot text-xs"></i></a>` : ""; 
         itiContainer.innerHTML += `
           <div class="relative mb-3">
