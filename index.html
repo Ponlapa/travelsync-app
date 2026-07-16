@@ -535,11 +535,12 @@ function renderFullDashboardUI() {
   renderItineraryTimeline();
 
   // ยอดรวมสะสมและการเงิน
-  let safeTotalCost = 0;
-  if (data.tab4Report && data.tab4Report.length > 0) {
-    safeTotalCost = data.tab4Report.reduce((acc, curr) => acc + (isNaN(parseFloat(curr.paid)) ? 0 : parseFloat(curr.paid)), 0);
-  }
-  document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined, {minimumFractionDigits:2})} บาท`;
+  // ยอดรวมสะสมและการเงิน (แก้ไขเพื่อหลบค่า undefined)
+        let safeTotalCost = 0;
+        if (data.tab1Expenses && data.tab1Expenses.length > 0) {
+          safeTotalCost = data.tab1Expenses.reduce((acc, curr) => acc + (isNaN(parseFloat(curr.totalAmount)) ? 0 : parseFloat(curr.totalAmount)), 0);
+        }
+        document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined, {minimumFractionDigits:2})} บาท`;
   
   // TAB 1 บิลทั่วไป
   const t1Container = document.getElementById("tab1-list-container"); 
