@@ -735,6 +735,255 @@ function closeBottomSheet(id) {
   el.classList.add("opacity-0"); el.classList.remove("opacity-100");
   setTimeout(() => { el.classList.add("hidden"); }, 300);
 }
+  function reCalculateAndRenderFinancialViews() {
+  if (!globalTripData) return;
+  const data = globalTripData;
+
+  const summaryMap = (data.members || []).reduce((acc, curr) => { acc[curr.id] = 0; return acc; }, {});
+  
+  (data.tab1Expenses || []).forEach(exp => {
+    if (summaryMap[exp.payerId] !== undefined) summaryMap[exp.payerId] += parseFloat(exp.totalAmount) || 0;
+    (exp.splits || []).forEach(s => {
+      if (summaryMap[s.id] !== undefined) summaryMap[s.id] -= parseFloat(s.share) || 0;
+    });
+  });
+
+  let safeTotalCost = (data.tab1Expenses || []).reduce((acc, curr) => acc + (parseFloat(curr.totalAmount) || 0), 0);
+  document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined, {minimumFractionDigits:2})} บาท`;
+
+  const t1Container = document.getElementById("tab1-list-container"); 
+  if (t1Container) {
+    t1Container.innerHTML = "";
+    if (!data.tab1Expenses || data.tab1Expenses.length === 0) {
+      t1Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบรายการบิลทั่วไป</div>`;
+    } else {
+      data.tab1Expenses.forEach((h) => {
+        let splitsHtml = (h.splits || []).map(s => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${s.name} ➔ ภาระ: ฿${parseFloat(s.share).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
+        let actionBtn = h.status === "Pending" 
+          ? `<button id="btn-close-t1-${h.billId}" onclick="event.stopPropagation(); changeTab1BillStatus('${h.billId}', 'Closed')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px] px-2.5">ปิดยอด ✅</button>` 
+          : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">จ่ายจบแล้ว</span>`;
+        
+        t1Container.innerHTML += `
+          <div id="tab1-row-${h.billId}" class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
+            <div onclick="document.getElementById('tab1-col-${h.billId}').classList.toggle('hidden');" class="pr-32 pl-4 py-3 text-xs cursor-pointer hover:bg-slate-100">
+              <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+              <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName}</span>
+              <div class="font-black text-slate-700 mt-1.5 text-sm">ยอดเงินสด: ฿${parseFloat(h.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
+            </div>
+            <div class="absolute right-3 top-2.5 flex items-center gap-1.5 z-30">
+              ${actionBtn}
+              <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
+            </div>
+            <div id="tab1-col-${h.billId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${splitsHtml}</div>
+          </div>`;
+      });
+    }
+  }
+
+  const t2Container = document.getElementById("tab2-list-container"); 
+  if (t2Container) {
+    t2Container.innerHTML = "";
+    if (!data.tab2Deposits || data.tab2Deposits.length === 0) {
+      t2Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบโครงการมัดจำ</div>`;
+    } else {
+      data.tab2Deposits.forEach((h) => {
+        let detailsHtml = (h.details || []).map(d => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${d.name} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
+        let actionBtn = h.status === "Awaiting_Final" 
+          ? `<button id="btn-final-t2-${h.depId}" onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-7 min-h-0 text-[10px] px-2">อัพเดทจ่ายเงิน 🏨</button>` 
+          : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">${h.status === "Ready_To_Settle" ? "รอเคลียร์หนี้" : "ปิดโครงการ"}</span>`;
+        
+        t2Container.innerHTML += `
+          <div id="tab2-row-${h.depId}" class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
+            <div onclick="document.getElementById('tab2-col-${h.depId}').classList.toggle('hidden');" class="pl-4 py-3 pr-4 text-xs cursor-pointer hover:bg-slate-100">
+              <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+              <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+            </div>
+            <div class="tab2-action-group p-3 border-t border-slate-100 flex items-center">
+              <span class="text-[10px] font-bold text-slate-500 mr-auto">วันจริงจ่ายเพิ่ม: <b id="t2-final-lbl-${h.depId}" class="text-slate-700">฿${parseFloat(h.finalPaid).toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
+              ${actionBtn}
+              <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center ml-2"><i class="fa-solid fa-trash-can text-xs"></i></button>
+            </div>
+            <div id="tab2-col-${h.depId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${detailsHtml}</div>
+          </div>`;
+      });
+    }
+  }
+
+  const t3Container = document.getElementById("tab3-list-container"); 
+  if(t3Container) {
+    t3Container.innerHTML = "";
+    if(!data.tab3Settlements || data.tab3Settlements.length === 0) { 
+      t3Container.innerHTML = `<div class="text-center py-4 text-xs font-bold bg-slate-50 rounded-xl border border-dashed">ไม่มีคิวจับคู่โอนเคลียร์หนี้เงินมัดจำ</div>`; 
+    } else {
+      data.tab3Settlements.forEach(s => {
+        let rowHtml = (s.instructions || []).map(ins => `<div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-100 font-bold"><span>${ins.fromName} โอนให้ ➔ <b>${ins.toName}</b></span><span class="text-primary font-black">฿${parseFloat(ins.amount).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</span></div>`).join("");
+        t3Container.innerHTML += `
+          <div id="tab3-card-${s.depId}" class="card bg-white border-2 border-slate-200 p-4 rounded-2xl flex flex-col gap-1.5 mb-2">
+            <div class="font-black text-sm border-b pb-2 flex justify-between items-center"><span>🏨 บิลมัดจำ: ${s.note}</span><button id="btn-archive-t3-${s.depId}" onclick="closeDepositJob('${s.depId}')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px]">ยืนยันจ่ายเงินเรียบร้อย 🔒</button></div>
+            <div class="flex flex-col gap-1 mt-1">${rowHtml}</div>
+          </div>`;
+      });
+    }
+  }
+
+  const t4Container = document.getElementById("tab4-list-container"); 
+  if(t4Container) {
+    t4Container.innerHTML = "";
+    (data.members || []).forEach(m => {
+      let netAmt = summaryMap[m.id] || 0;
+      let colorClass = netAmt >= 0 ? "text-emerald-600" : "text-rose-600";
+      let prefixStr = netAmt >= 0 ? "สุทธิ (ได้คืน): +" : "สุทธิ (ต้องจ่าย): ";
+      t4Container.innerHTML += `<div class="flex justify-between items-center p-3 mb-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"><span>${m.icon || '👤'} ${m.name}</span><span class="${colorClass} font-black">${prefixStr}฿${Math.abs(netAmt).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</span></div>`;
+    });
+  }
+}
+
+// =====================================================================
+// ⚡ 2. ฟังก์ชันกลุ่ม Data Action (บันทึก, ลบ, แก้ไข, ดึงข้อมูลเบื้องหลัง)
+// =====================================================================
+function silentSyncFinancialData() {
+  if (!currentTripId) return;
+  callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${currentTripId}`).then(freshData => {
+    if (freshData && freshData.success) {
+      globalTripData = freshData;
+      reCalculateAndRenderFinancialViews();
+    }
+  });
+}
+
+function handleRegisterUserSubmit() {
+  const name = document.getElementById("reg-user-name").value.trim(), icon = document.getElementById("reg-user-icon").value.trim(), pin = document.getElementById("reg-user-pin").value.trim();
+  if(!name || !icon || !pin) return Swal.fire("ล้มเหลว", "กรอกข้อมูลไม่ครบ", "warning");
+  callAPI(WEB_APP_URL, 'POST', { action: "addNewUser", name: name, icon: icon, pin: pin }).then(res => {
+    if(res.success) { closeBottomSheet("modal-register-user"); window.location.reload(); }
+  });
+}
+
+function handleCreateTrip() { 
+  const title = document.getElementById("trip-title").value.trim(), desc = document.getElementById("trip-desc").value.trim(); 
+  if(!title) return; 
+  callAPI(WEB_APP_URL, 'POST', { action: "createTrip", title: title, desc: desc, hostId: currentUser.id }).then(() => { renderTripsList(); });
+}
+
+function handleRegisterItinerary() { 
+  const date = document.getElementById("iti-date").value, time = document.getElementById("iti-time").value, act = document.getElementById("iti-act").value.trim(), loc = document.getElementById("iti-loc").value.trim(), map = document.getElementById("iti-map").value.trim(); 
+  if(!date || !time || !act || !loc) return;
+  callAPI(WEB_APP_URL, 'POST', { action: "addItinerary", tripId: currentTripId, date: date, time: time, activity: act, location: loc, mapUrl: map }).then(res => {
+    if(res.success) { 
+      closeBottomSheet("modal-add-itinerary"); 
+      activeSelectedDayDate = date; 
+      if(globalTripData) {
+        globalTripData.itinerary.push({ id: "I_TEMP_" + Date.now(), date: date, time: time, activity: act, location: loc, mapUrl: map });
+        renderFullDashboardUI();
+      }
+      silentSyncFinancialData();
+    }
+  });
+}
+
+function submitTab1Expense() {
+  const amt = document.getElementById("t1-amount").value, note = document.getElementById("t1-note").value.trim(), cat = document.getElementById("t1-cat").value;
+  if(!amt || parseFloat(amt) <= 0 || !note) return;
+  const chks = document.getElementsByName("chk-t1-user");
+  const splitArray = []; for(let i=0; i<chks.length; i++) { if(chks[i].checked) splitArray.push(chks[i].value); }
+  closeBottomSheet("modal-add-tab1");
+  callAPI(WEB_APP_URL, 'POST', { action: "addExpenseNew", tripId: currentTripId, note: note, category: cat, totalAmount: amt, payerId: currentUser.id, splits: splitArray })
+    .then(() => silentSyncFinancialData());
+}
+
+function submitTab2DepositMaster() {
+  const fullCost = parseFloat(document.getElementById("t2-fullcost").value) || 0, note = document.getElementById("t2-note").value.trim(), cat = document.getElementById("t2-cat").value;
+  const chks = document.getElementsByName("chk-t2-user"); const splitsArray = [];
+  for (let i = 0; i < chks.length; i++) { splitsArray.push({ userId: chks[i].value, isTarget: chks[i].checked, depositAmount: parseFloat(document.getElementById(`input-t2-depamt-${chks[i].value}`).value) || 0 }); }
+  closeBottomSheet("modal-add-tab2-master");
+  callAPI(WEB_APP_URL, 'POST', { action: "addDepositMaster", tripId: currentTripId, note: note, category: cat, fullCost: fullCost, splits: splitsArray })
+    .then(() => silentSyncFinancialData());
+}
+
+function openFinalPaymentModal(depId, note, fullCost, totalDeposit) {
+  if(window.event) window.event.stopPropagation();
+  document.getElementById("t2-final-depid").value = depId;
+  const expectedPaid = fullCost - totalDeposit;
+  document.getElementById("t2-final-expected-paid").value = expectedPaid;
+  document.getElementById("t2-final-paid-input").value = expectedPaid;
+  document.getElementById("t2-final-info-label").innerText = `บิล: ${note} | จ่ายเพิ่มหน้างาน: ฿${expectedPaid}`;
+  const select = document.getElementById("t2-final-payer-select"); select.innerHTML = "";
+  if(globalTripData) { globalTripData.members.forEach(m => { select.innerHTML += `<option value="${m.id}">${m.icon || '👤'} ${m.name}</option>`; }); }
+  openBottomSheet("modal-add-tab2-final");
+}
+
+function submitTab2FinalPayment() {
+  const depId = document.getElementById("t2-final-depid").value, payerId = document.getElementById("t2-final-payer-select").value, paidInput = parseFloat(document.getElementById("t2-final-paid-input").value) || 0;
+  closeBottomSheet("modal-add-tab2-final");
+  const btn = document.getElementById(`btn-final-t2-${depId}`);
+  if(btn) { btn.innerText = "⏳ กำลังบันทึก..."; btn.disabled = true; }
+  callAPI(WEB_APP_URL, 'POST', { action: "updateDepositFinalPayment", depId: depId, finalPaid: paidInput, finalPayerId: payerId }).then(() => { 
+    activeCurrentFinTabIdx = 3; 
+    silentSyncFinancialData(); 
+  });
+}
+
+function changeTab1BillStatus(billId, status) { 
+  const btn = document.getElementById(`btn-close-t1-${billId}`);
+  if(btn) { btn.innerText = "⏳ รอผล..."; btn.disabled = true; }
+  callAPI(WEB_APP_URL, 'POST', { action: "updateExpenseNewStatus", billId: billId, status: status }).then(() => {
+    if(globalTripData) {
+      let item = globalTripData.tab1Expenses.find(x => x.billId === billId);
+      if(item) item.status = status;
+      reCalculateAndRenderFinancialViews();
+    }
+    silentSyncFinancialData();
+  });
+}
+
+function closeDepositJob(depId) { 
+  const btn = document.getElementById(`btn-archive-t3-${depId}`);
+  if(btn) { btn.innerText = "⏳ ปิดงาน..."; btn.disabled = true; }
+  callAPI(WEB_APP_URL, 'POST', { action: "closeDepositStatus", depId: depId, status: "Archived" }).then(() => { 
+    activeCurrentFinTabIdx = 4; 
+    if(globalTripData) {
+      let item = globalTripData.tab2Deposits.find(x => x.depId === depId);
+      if(item) item.status = "Archived";
+      globalTripData.tab3Settlements = globalTripData.tab3Settlements.filter(x => x.depId !== depId);
+      reCalculateAndRenderFinancialViews();
+    }
+    silentSyncFinancialData(); 
+  }); 
+}
+
+function deleteTab1Bill(billId) { 
+  const row = document.getElementById(`tab1-row-${billId}`);
+  if(row) row.remove();
+  callAPI(WEB_APP_URL, 'POST', { action: "deleteExpenseNew", billId: billId }).then(() => {
+    if(globalTripData) {
+      globalTripData.tab1Expenses = globalTripData.tab1Expenses.filter(x => x.billId !== billId);
+      reCalculateAndRenderFinancialViews();
+    }
+    silentSyncFinancialData();
+  }); 
+}
+
+function deleteTab2Bill(depId) { 
+  const row = document.getElementById(`tab2-row-${depId}`);
+  if(row) row.remove();
+  callAPI(WEB_APP_URL, 'POST', { action: "deleteDepositFull", depId: depId }).then(() => {
+    if(globalTripData) {
+      globalTripData.tab2Deposits = globalTripData.tab2Deposits.filter(x => x.depId !== depId);
+      globalTripData.tab3Settlements = globalTripData.tab3Settlements.filter(x => x.depId !== depId);
+      reCalculateAndRenderFinancialViews();
+    }
+    silentSyncFinancialData();
+  }); 
+}
+
+function handleMemberAction(targetUserId, actionType) { 
+  const row = document.getElementById(`pending-row-${targetUserId}`);
+  if(row) row.innerHTML = `<span class="text-slate-400 font-medium italic">กำลังประมวลผลระบบ...</span>`;
+  callAPI(WEB_APP_URL, 'POST', { action: "handleMemberAction", tripId: currentTripId, targetUserId: targetUserId, type: actionType }).then(() => {
+    globalTripData = null; 
+    enterTripDashboard(currentTripId);
+  }); 
+}
   </script>
   <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').then(() => console.log('PWA OK')); }</script>
 </body>
