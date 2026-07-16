@@ -492,16 +492,27 @@
 
         // 📅 จัดการแถบปุ่มเลือกสลับวันเดินทางประมวลผลอัตโนมัติ
         const tabsBar = document.getElementById("itinerary-day-tabs-bar");
-        tabsBar.innerHTML = "";
-        let uniqueDates = [...new Set(globalItineraryDataCached.map(item => item.date))].sort();
-        if(uniqueDates.length > 0) {
-          if(activeSelectedDayDate === "" || !uniqueDates.includes(activeSelectedDayDate)) activeSelectedDayDate = uniqueDates[0];
-          uniqueDates.forEach(dStr => {
-            let activeClass = (activeSelectedDayDate === dStr) ? "btn btn-sm btn-primary text-white font-black rounded-xl text-xs px-3 shrink-0" : "btn btn-sm bg-slate-100 border border-slate-200 font-bold rounded-xl text-slate-600 text-xs px-3 shrink-0";
-            tabsBar.innerHTML += `<button onclick="changeActiveDayTab('${dStr}')" class="${activeClass}">${dStr}</button>`;
-          });
-        }
-        renderItineraryTimeline();
+if (tabsBar) {
+  tabsBar.innerHTML = "";
+  // ดึงเฉพาะวันที่ที่มีอยู่จริง ไม่เป็นค่าว่าง และเรียงลำดับจากวันแรกไปวันสุดท้าย
+  let uniqueDates = [...new Set(globalItineraryDataCached.map(item => item.date).filter(Boolean))].sort();
+  
+  if (uniqueDates.length > 0) {
+    if (activeSelectedDayDate === "" || !uniqueDates.includes(activeSelectedDayDate)) {
+      activeSelectedDayDate = uniqueDates[0];
+    }
+    uniqueDates.forEach(dStr => {
+      let isSelected = (activeSelectedDayDate === dStr);
+      let btnClass = isSelected 
+        ? "btn btn-sm btn-primary text-white font-black rounded-xl text-xs px-3 shrink-0" 
+        : "btn btn-sm bg-slate-100 border border-slate-200 font-bold rounded-xl text-slate-600 text-xs px-3 shrink-0";
+      tabsBar.innerHTML += `<button type="button" onclick="changeActiveDayTab('${dStr}')" class="${btnClass}">${dStr}</button>`;
+    });
+  } else {
+    tabsBar.innerHTML = `<span class="text-[11px] text-slate-400 font-bold">ไม่มีการระบุวันที่ในแผนเดินทาง</span>`;
+  }
+}
+renderItineraryTimeline();
 
         // ยอดรวมสะสมและการเงิน
         let safeTotalCost = 0;
