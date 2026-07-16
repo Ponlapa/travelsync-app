@@ -470,7 +470,7 @@
       
       callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${tripId}`).then(data => {
         Swal.close();
-        if(!data || !data.success) return;
+        if(!data || !data) return;
 
         document.getElementById("dash-trip-title").innerText = "ระบบบัญชีกลุ่มทริป";
         cachedActiveTripMembersList = data.members || [];
