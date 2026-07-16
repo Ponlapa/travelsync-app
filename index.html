@@ -710,6 +710,31 @@ function switchToView(viewId) {
   const target = document.getElementById(viewId); if (target) { target.classList.remove("hidden"); target.style.display = "flex"; }
   if(viewId === "view-dashboard" && nav) { nav.classList.remove("hidden"); }
 }
+  function buildTab2DynamicMembersForm() {
+  if (!globalTripData) return;
+  const zone = document.getElementById("t2-deposit-members-injector"); 
+  if (!zone) return;
+  zone.innerHTML = "";
+  globalTripData.members.forEach(m => {
+    zone.innerHTML += `<div class="flex items-center justify-between p-2.5 bg-white border border-slate-200 rounded-xl gap-2"><label class="flex items-center gap-2 text-xs font-black text-slate-700 min-w-0 flex-1 cursor-pointer truncate"><input type="checkbox" name="chk-t2-user" id="chk-t2-target-${m.id}" value="${m.id}" checked class="checkbox checkbox-secondary checkbox-sm rounded-md"><span class="truncate">${m.icon || '👤'} ${m.name}</span></label><div class="flex items-center gap-1 shrink-0 w-36"><span class="text-[10px] text-slate-400 font-bold">มัดจำ:</span><input type="number" id="input-t2-depamt-${m.id}" value="0" min="0" class="input input-bordered input-xs w-full text-right font-bold text-slate-800 bg-white"><span class="text-[10px] text-slate-400 font-bold">บาท</span></div></div>`;
+  });
+}
+
+function openBottomSheet(id) {
+  const el = document.getElementById(id); if(!el) return;
+  el.classList.remove("hidden");
+  setTimeout(() => {
+    el.classList.add("opacity-100"); el.classList.remove("opacity-0");
+    const body = el.querySelector("div"); if(body) body.classList.remove("translate-y-full");
+  }, 10);
+}
+
+function closeBottomSheet(id) {
+  const el = document.getElementById(id); if(!el) return;
+  const body = el.querySelector("div"); if(body) body.classList.add("translate-y-full");
+  el.classList.add("opacity-0"); el.classList.remove("opacity-100");
+  setTimeout(() => { el.classList.add("hidden"); }, 300);
+}
   </script>
   <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').then(() => console.log('PWA OK')); }</script>
 </body>
