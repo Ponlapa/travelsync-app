@@ -63,9 +63,16 @@
       border-top: 1px dashed #e2e8f0; margin-top: 8px;
     }
     #itinerary-day-tabs-bar {
-      display: flex; gap: 8px; overflow-x: auto !important;
-      padding-bottom: 8px; margin-bottom: 12px; width: 100%; scrollbar-width: none;
-    }
+  display: flex; 
+  flex-wrap: nowrap !important; /* ✨ บังคับไม่ให้ปุ่มตกบรรทัด */
+  gap: 8px; 
+  overflow-x: scroll !important; /* ✨ เปิดเลื่อนซ้าย-ขวา */
+  -webkit-overflow-scrolling: touch; /* ✨ ช่วยให้ไถบน iOS ลื่นขึ้น */
+  padding-bottom: 8px; 
+  margin-bottom: 12px; 
+  width: 100%; 
+  scrollbar-width: none;
+}
     #itinerary-day-tabs-bar::-webkit-scrollbar { display: none; }
   </style>
 </head>
@@ -438,9 +445,9 @@
           uniqueDates.forEach(dStr => {
             let isSelected = (activeSelectedDayDate === dStr);
             let btnClass = isSelected 
-              ? "btn btn-sm btn-primary text-white font-black rounded-xl text-xs px-3 shrink-0" 
-              : "btn btn-sm bg-slate-100 border border-slate-200 font-bold rounded-xl text-slate-600 text-xs px-3 shrink-0";
-            tabsBar.innerHTML += `<button type="button" onclick="changeActiveDayTab('${dStr}')" class="${btnClass}">${dStr}</button>`;
+              ? "btn btn-sm btn-primary text-white font-black rounded-xl text-xs px-3 shrink-0 whitespace-nowrap" 
+    : "btn btn-sm bg-slate-100 border border-slate-200 font-bold rounded-xl text-slate-600 text-xs px-3 shrink-0 whitespace-nowrap";
+  tabsBar.innerHTML += `<button type="button" onclick="changeActiveDayTab('${dStr}')" class="${btnClass}">${dStr}</button>`;
           });
         } else {
           tabsBar.innerHTML = `<span class="text-[11px] text-slate-400 font-bold">ไม่มีการระบุวันที่ในแผนเดินทาง</span>`;
