@@ -683,15 +683,21 @@
     }
 
     function switchMainTab(tabName) {
-      const btnIti = document.getElementById("nav-btn-iti"), btnFin = document.getElementById("nav-btn-fin"), viewIti = document.getElementById("sub-view-itinerary"), viewFin = document.getElementById("sub-view-expenses");
+      const btnIti = document.getElementById("nav-btn-iti");
+      const btnFin = document.getElementById("nav-btn-fin");
+      const viewIti = document.getElementById("sub-view-itinerary");
+      const viewFin = document.getElementById("sub-view-expenses");
+
       if(tabName === "iti") { 
-        btnIti.className = "flex flex-col items-center justify-center text-primary transition-all bg-transparent border-0 outline-none"; 
-        btnFin.className = "flex flex-col items-center justify-center text-slate-400 transition-all bg-transparent border-0 outline-none"; 
-        if(viewIti) viewIti.classList.remove("hidden"); if(viewFin) viewFin.classList.add("hidden"); 
+        btnIti.className = "flex flex-col items-center justify-center text-primary font-black transition-all bg-primary/10 border-t-2 border-primary shadow-inner"; 
+        btnFin.className = "flex flex-col items-center justify-center text-slate-400 font-bold transition-all bg-transparent border-0 opacity-60"; 
+        if(viewIti) viewIti.classList.remove("hidden"); 
+        if(viewFin) viewFin.classList.add("hidden"); 
       } else { 
-        btnIti.className = "flex flex-col items-center justify-center text-slate-400 transition-all bg-transparent border-0 outline-none"; 
-        btnFin.className = "flex flex-col items-center justify-center text-primary transition-all bg-transparent border-0 outline-none"; 
-        if(viewIti) viewIti.classList.add("hidden"); if(viewFin) viewFin.classList.remove("hidden"); 
+        btnIti.className = "flex flex-col items-center justify-center text-slate-400 font-bold transition-all bg-transparent border-0 opacity-60"; 
+        btnFin.className = "flex flex-col items-center justify-center text-primary font-black transition-all bg-primary/10 border-t-2 border-primary shadow-inner"; 
+        if(viewIti) viewIti.classList.add("hidden"); 
+        if(viewFin) viewFin.classList.remove("hidden"); 
         switchFinTab(activeCurrentFinTabIdx);
       }
     }
@@ -702,12 +708,19 @@
       for(let i=1; i<=4; i++) {
         const btn = document.getElementById(`tab-btn-${i}`); 
         const content = document.getElementById(`fin-content-${i}`);
-        if(i === tabIdx) {
-          if(btn) btn.className = "tab tab-active flex-1 text-[11px] font-black rounded-lg px-1 truncate";
+      if(i === tabIdx) {
+          // ✨ ปุ่มที่เลือกอยู่: ใส่ Shadow เข้ม + ตัวหนังสือเด่นชัด + ขอบเน้น
+          if(btn) {
+            btn.className = "tab flex-1 text-[11px] font-black rounded-xl px-1 truncate bg-primary text-white shadow-md shadow-cyan-500/30 border-2 border-primary transition-all scale-105 z-10";
+            btn.style = ""; // ล้าง style เดิมออกเพื่อให้ class bg-primary ทำงาน
+          }
           if(content) content.classList.remove("hidden");
         } else {
-          if(btn) btn.className = "tab flex-1 text-[11px] font-black rounded-lg px-1 truncate bg-transparent text-slate-500";
-          if(btn) btn.style = "background-color:transparent !important; color:#475569 !important;";
+          // ✨ ปุ่มที่ไม่ไดเลือก: ปรับให้จางลง ไม่มี shadow
+          if(btn) {
+            btn.className = "tab flex-1 text-[11px] font-bold rounded-xl px-1 truncate bg-white text-slate-400 border border-slate-200 transition-all opacity-70";
+            btn.style = "background-color:#ffffff !important; color:#94a3b8 !important;";
+          }
           if(content) content.classList.add("hidden");
         }
       }
@@ -816,9 +829,14 @@
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#00E0BA',
-        cancelButtonColor: '#d33',
+        cancelButtonColor: '#ef4444', // สีแดงสว่างสำหรับปุ่มยกเลิก
         confirmButtonText: 'ใช่, จ่ายครบแล้ว!',
-        cancelButtonText: 'ยกเลิก'
+        cancelButtonText: 'ยกเลิก',
+        customClass: {
+          confirmButton: 'btn btn-primary text-white font-black px-4 mx-1',
+          cancelButton: 'btn bg-red-500 hover:bg-red-600 text-white font-black border-0 px-4 mx-1'
+        },
+        buttonsStyling: false // ปิดการใช้ Style ตั้งต้นของ SweetAlert แล้วใช้ Class ของ Tailwind/DaisyUI แทน
       }).then((result) => {
         if (result.isConfirmed) {
           changeTab1BillStatus(billId, 'Closed');
