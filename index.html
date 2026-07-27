@@ -126,7 +126,7 @@
         </div>
         <div class="form-control w-full">
           <label class="label"><span class="label-text font-black text-slate-600 text-xs">ระบุรหัสส่วนตัวความปลอดภัย (PIN)</span></label>
-          <input type="password" id="login-user-pin" placeholder="••••" maxlength="4" class="input input-bordered w-full text-center text-xl font-black tracking-widest text-slate-800 bg-slate-50 border-2 rounded-xl focus:outline-none focus:border-primary">
+          <input type="password" id="login-user-pin" placeholder="••••" maxlength="6" class="input input-bordered w-full text-center text-xl font-black tracking-widest text-slate-800 bg-slate-50 border-2 rounded-xl focus:outline-none focus:border-primary">
         </div>
         <button onclick="handleUserLoginSubmit()" class="btn btn-primary w-full text-sm font-black text-white rounded-2xl shadow-md h-12 min-h-0 bg-gradient-to-r from-primary to-indigo-600 border-0 hover:opacity-90 mt-2">
           เข้าสู่หน้าแอปพลิเคชัน 🚀
@@ -250,7 +250,7 @@
       <div class="space-y-3">
         <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ไอคอนประจำตัว (Emoji 1 ตัว)</span></label><input type="text" id="reg-user-icon" placeholder="🦊" maxlength="2" class="input input-bordered w-full bg-slate-50 font-bold text-center"></div>
         <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ชื่อเล่นภาษาอังกฤษ (ห้ามซ้ำ)</span></label><input type="text" id="reg-user-name" placeholder="Palmy" class="input input-bordered w-full bg-slate-50 font-bold"></div>
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ตั้งรหัสความปลอดภัย PIN (ตัวเลข 4 ตัว)</span></label><input type="password" id="reg-user-pin" placeholder="1234" maxlength="4" class="input input-bordered w-full bg-slate-50 text-center font-bold tracking-widest"></div>
+        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ตั้งรหัสความปลอดภัย PIN (ตัวเลข 4-6 ตัว)</span></label><input type="password" id="reg-user-pin" placeholder="1234" maxlength="6" class="input input-bordered w-full bg-slate-50 text-center font-bold tracking-widest"></div>
         <button onclick="handleRegisterUserSubmit()" class="btn btn-primary w-full font-black text-white rounded-xl mt-2 h-11 min-h-0">ลงทะเบียนสมาชิกใหม่ 🎯</button>
       </div>
     </div>
@@ -558,27 +558,18 @@
       if (!globalTripData) return;
       const data = globalTripData;
 
-      // Helper function สำหรับดึงวันที่ให้ชัวร์
-      const getFormattedDate = (obj) => {
-        let rawDate = obj.date || obj.createdAt || obj.created_at || obj.timestamp;
-        if (!rawDate) {
-          return new Date().toISOString().split('T')[0]; // ถ้าไม่มี ให้แสดงวันที่ปัจจุบันของระบบ
-        }
-        if (typeof rawDate === 'string' && rawDate.includes('T')) {
-          return rawDate.split('T')[0];
-        }
-        return rawDate;
-      };
-
-      // 1. คำนวณ Net Balance สุจริตรายคน (สำหรับ Tab 3)
+      // 1. คำนวณ Net Balance (ยอดเงินสุทธิสะสม)
       const summaryMap = (data.members || []).reduce((acc, curr) => { acc[curr.id] = 0; return acc; }, {});
       
       (data.tab1Expenses || []).forEach(exp => {
         let pId = exp.payerId || exp.payer_id;
         if (summaryMap[pId] !== undefined) summaryMap[pId] += parseFloat(exp.totalAmount) || 0;
+        
         (exp.splits || []).forEach(s => {
-          let memberId = s.userId || s.id; // รองรับทั้ง userId และ id
-          if (summaryMap[memberId] !== undefined) summaryMap[memberId] -= parseFloat(s.share) || 0;
+          let mId = s.userId || s.id || s.memberId;
+          if (mId && summaryMap[mId] !== undefined) {
+            summaryMap[mId] -= parseFloat(s.share) || 0;
+          }
         });
       });
 
@@ -586,7 +577,7 @@
       document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined, {minimumFractionDigits:2})} บาท`;
 
       // ==========================================
-      // TAB 1: บิลทั่วไป (แยกตามวันที่ + ปุ่ม Show/Hide)
+      // TAB 1: บิลทั่วไป
       // ==========================================
       const t1Container = document.getElementById("tab1-list-container"); 
       if (t1Container) {
@@ -594,73 +585,41 @@
         if (!data.tab1Expenses || data.tab1Expenses.length === 0) {
           t1Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบรายการบิลทั่วไป</div>`;
         } else {
-          let groupedT1 = {};
-          data.tab1Expenses.forEach(exp => {
-            let dateStr = getFormattedDate(exp);
-            if (!groupedT1[dateStr]) groupedT1[dateStr] = [];
-            groupedT1[dateStr].push(exp);
-          });
-
-          let t1Html = "";
-          Object.keys(groupedT1).sort().reverse().forEach(dateGroup => {
-            t1Html += `
-              <div class="mb-3">
-                <div class="text-[10px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-lg inline-block mb-2">
-                  🗓️ วันที่บันทึก: ${dateGroup}
+          data.tab1Expenses.forEach((h) => {
+            let splitsHtml = (h.splits || []).map(s => {
+              let sName = s.name || s.userName || "สมาชิก";
+              return `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${sName} ➔ ภาระ: ฿${parseFloat(s.share || 0).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`;
+            }).join("");
+            
+            const isPayer = (currentUser && currentUser.id === (h.payerId || h.payer_id));
+            let actionBtn = "";
+            if (h.status === "Pending") {
+              actionBtn = isPayer 
+                ? `<button id="btn-close-t1-${h.billId}" onclick="event.stopPropagation(); confirmCloseTab1Bill('${h.billId}')" class="btn btn-xs btn-success text-white font-bold h-6 min-h-0 text-[10px] px-2 rounded-lg">จ่ายเงินครบแล้ว ✅</button>`
+                : `<span class="badge badge-warning text-[9px] font-black p-1.5 h-5">รอคนจ่ายกดปิด</span>`;
+            } else {
+              actionBtn = `<span class="badge badge-neutral text-[9px] font-black p-1.5 h-5">จ่ายจบแล้ว</span>`;
+            }
+            
+            t1Container.innerHTML += `
+              <div id="tab1-row-${h.billId}" class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
+                <div onclick="document.getElementById('tab1-col-${h.billId}').classList.toggle('hidden');" class="pr-32 pl-4 py-3 text-xs cursor-pointer hover:bg-slate-100">
+                  <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+                  <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName || h.payer_name}</span>
+                  <div class="font-black text-slate-700 mt-1.5 text-sm">ยอดเงินสด: ฿${parseFloat(h.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
                 </div>
-                <div class="space-y-2">`;
-
-            groupedT1[dateGroup].forEach((h) => {
-              let splitsHtml = (h.splits || []).map(s => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${s.name || s.userName} ➔ ภาระ: ฿${parseFloat(s.share).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
-              const isPayer = (currentUser && currentUser.id === (h.payerId || h.payer_id));
-
-              let actionBtn = "";
-              if (h.status === "Pending") {
-                if (isPayer) {
-                  actionBtn = `<button id="btn-close-t1-${h.billId}" onclick="event.stopPropagation(); confirmCloseTab1Bill('${h.billId}')" class="btn btn-xs btn-success text-white font-bold h-6 min-h-0 text-[10px] px-2 rounded-lg">จ่ายเงินครบแล้ว ✅</button>`;
-                } else {
-                  actionBtn = `<span class="badge badge-warning text-[9px] font-black p-1.5 h-5">รอคนจ่ายกดปิด</span>`;
-                }
-              } else {
-                actionBtn = `<span class="badge badge-neutral text-[9px] font-black p-1.5 h-5">จ่ายจบแล้ว</span>`;
-              }
-
-              t1Html += `
-                <div id="tab1-row-${h.billId}" class="w-full bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
-                  <div class="p-3 flex justify-between items-start">
-                    <div class="min-w-0 flex-1 pr-2">
-                      <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
-                      <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName || h.payer_name}</span>
-                      <div class="font-black text-slate-700 mt-1 text-sm">ยอดเงินสด: ฿${parseFloat(h.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
-                    </div>
-                    <div class="flex items-center gap-1.5 shrink-0">
-                      <button type="button" 
-                              onclick="const col = document.getElementById('tab1-col-${h.billId}'); const isHidden = col.classList.contains('hidden'); col.classList.toggle('hidden'); this.innerText = isHidden ? 'Hide 🔼' : 'Show 🔽';" 
-                              class="btn btn-xs bg-slate-200 border-0 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-[10px] px-2 min-h-0 h-6">
-                        Show 🔽
-                      </button>
-                      <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-xs btn-circle btn-error text-white border-0 bg-red-500 w-6 h-6 min-h-0 flex items-center justify-center"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
-                    </div>
-                  </div>
-                  <div id="tab1-col-${h.billId}" class="hidden bg-white border-t border-slate-100 p-3 space-y-1.5">
-                    ${splitsHtml}
-                    <div class="pt-2 border-t border-slate-100 flex justify-end">
-                      ${actionBtn}
-                    </div>
-                  </div>
-                </div>`;
-            });
-
-            t1Html += `
+                <div class="absolute right-3 top-2.5 flex items-center gap-1.5 z-30">
+                  ${actionBtn}
+                  <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
                 </div>
+                <div id="tab1-col-${h.billId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${splitsHtml}</div>
               </div>`;
           });
-          t1Container.innerHTML = t1Html;
         }
       }
 
       // ==========================================
-      // TAB 2: บิลมัดจำ (แยกตามวันที่ + ปุ่ม Show/Hide)
+      // TAB 2: บิลมัดจำ
       // ==========================================
       const t2Container = document.getElementById("tab2-list-container"); 
       if (t2Container) {
@@ -668,82 +627,49 @@
         if (!data.tab2Deposits || data.tab2Deposits.length === 0) {
           t2Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบโครงการมัดจำ</div>`;
         } else {
-          let groupedT2 = {};
-          data.tab2Deposits.forEach(dep => {
-            let dateStr = getFormattedDate(dep);
-            if (!groupedT2[dateStr]) groupedT2[dateStr] = [];
-            groupedT2[dateStr].push(dep);
-          });
-
-          let t2Html = "";
-          Object.keys(groupedT2).sort().reverse().forEach(dateGroup => {
-            t2Html += `
-              <div class="mb-3">
-                <div class="text-[10px] font-black text-secondary bg-secondary/10 px-2.5 py-1 rounded-lg inline-block mb-2">
-                  🗓️ วันที่บันทึก: ${dateGroup}
+          data.tab2Deposits.forEach((h) => {
+            const expectedPaidAmt = (parseFloat(h.fullCost) || 0) - (parseFloat(h.totalDeposit) || 0);
+            const displayPaidAmt = h.status === "Awaiting_Final" ? expectedPaidAmt : (parseFloat(h.finalPaid) || 0);
+            let detailsHtml = (h.details || []).map(d => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${d.name} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit || 0).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
+            let actionBtn = h.status === "Awaiting_Final" 
+              ? `<button id="btn-final-t2-${h.depId}" onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-7 min-h-0 text-[10px] px-2">อัพเดทจ่ายเงิน 🏨</button>` 
+              : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">${h.status === "Ready_To_Settle" ? "รอเคลียร์หนี้" : "ปิดโครงการ"}</span>`;
+            
+            t2Container.innerHTML += `
+              <div id="tab2-row-${h.depId}" class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
+                <div onclick="document.getElementById('tab2-col-${h.depId}').classList.toggle('hidden');" class="pl-4 py-3 pr-4 text-xs cursor-pointer hover:bg-slate-100">
+                  <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+                  <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
                 </div>
-                <div class="space-y-2">`;
-
-            groupedT2[dateGroup].forEach((h) => {
-              const expectedPaidAmt = (parseFloat(h.fullCost) || 0) - (parseFloat(h.totalDeposit) || 0);
-              const displayPaidAmt = h.status === "Awaiting_Final" ? expectedPaidAmt : (parseFloat(h.finalPaid) || 0);
-              let detailsHtml = (h.details || []).map(d => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${d.name} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
-              let actionBtn = h.status === "Awaiting_Final" 
-                ? `<button id="btn-final-t2-${h.depId}" onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-6 min-h-0 text-[10px] px-2 rounded-lg">อัพเดทจ่ายเงิน 🏨</button>` 
-                : `<span class="badge badge-neutral text-[9px] font-black p-1.5 h-5">${h.status === "Ready_To_Settle" ? "รอเคลียร์หนี้" : "ปิดโครงการ"}</span>`;
-
-              t2Html += `
-                <div id="tab2-row-${h.depId}" class="w-full bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
-                  <div class="p-3 flex justify-between items-start">
-                    <div class="min-w-0 flex-1 pr-2">
-                      <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
-                      <span class="text-[10px] text-slate-400 font-bold block mt-0.5">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
-                      <span class="text-[10px] font-bold text-slate-500 block mt-1">วันจริงจ่ายเพิ่ม: <b class="text-slate-700">฿${displayPaidAmt.toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
-                    </div>
-                    <div class="flex items-center gap-1.5 shrink-0">
-                      <button type="button" 
-                              onclick="const col = document.getElementById('tab2-col-${h.depId}'); const isHidden = col.classList.contains('hidden'); col.classList.toggle('hidden'); this.innerText = isHidden ? 'Hide 🔼' : 'Show 🔽';" 
-                              class="btn btn-xs bg-slate-200 border-0 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-[10px] px-2 min-h-0 h-6">
-                        Show 🔽
-                      </button>
-                      <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-xs btn-circle btn-error text-white border-0 bg-red-500 w-6 h-6 min-h-0 flex items-center justify-center"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
-                    </div>
-                  </div>
-                  <div id="tab2-col-${h.depId}" class="hidden bg-white border-t border-slate-100 p-3 space-y-1.5">
-                    ${detailsHtml}
-                    <div class="pt-2 border-t border-slate-100 flex justify-end">
-                      ${actionBtn}
-                    </div>
-                  </div>
-                </div>`;
-            });
-
-            t2Html += `
+                <div class="tab2-action-group p-3 border-t border-slate-100 flex items-center">
+                  <span class="text-[10px] font-bold text-slate-500 mr-auto">วันจริงจ่ายเพิ่ม: <b id="t2-final-lbl-${h.depId}" class="text-slate-700">฿${displayPaidAmt.toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
+                  ${actionBtn}
+                  <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center ml-2"><i class="fa-solid fa-trash-can text-xs"></i></button>
                 </div>
+                <div id="tab2-col-${h.depId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${detailsHtml}</div>
               </div>`;
           });
-          t2Container.innerHTML = t2Html;
         }
       }
 
       // ==========================================
-      // TAB 3: จัดการเงินมัดจำ (สรุปจับคู่โอนจาก Net Balance)
+      // TAB 3: สรุปยอดการจัดการเงิน (แสดงตามสมาชิกทุกคน)
       // ==========================================
       const t3Container = document.getElementById("tab3-list-container"); 
       if (t3Container) {
         t3Container.innerHTML = "";
-
         let summaryHtml = `<div class="mb-2"><span class="text-[11px] font-black text-slate-700">📊 ยอดการจัดการเงิน (สรุปรายการต้องจ่ายแยกรายคน)</span></div>`;
 
         (data.members || []).forEach(m => {
           let listRowsHtml = "";
-          
-          // ตรวจสอบจาก tab3Settlements
+
           (data.tab3Settlements || []).forEach(s => {
             (s.instructions || []).forEach(ins => {
-              if (ins.fromId === m.id && ins.amount > 0) {
-                let recipient = (data.members || []).find(x => x.id === ins.toId);
-                let recipientName = recipient ? `${recipient.icon || '👤'} ${recipient.name}` : ins.toName;
+              let fId = ins.fromId || ins.from_id;
+              let tId = ins.toId || ins.to_id;
+              if (fId === m.id && parseFloat(ins.amount) > 0) {
+                let recipient = (data.members || []).find(x => x.id === tId);
+                let recipientName = recipient ? `${recipient.icon || '👤'} ${recipient.name}` : (ins.toName || ins.to_name || "สมาชิก");
                 listRowsHtml += `
                   <div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-100 font-bold">
                     <span class="text-slate-600">จ่ายให้ <b>${recipientName}</b></span>
@@ -781,21 +707,21 @@
         (data.members || []).forEach(m => {
           let personTotalExpense = 0;
 
-          // รวมภาระค่าใช้จ่ายจาก Tab 1 (เช็คทั้ง userId และ id)
+          // คำนวณจาก Tab 1 (ตรวจเช็คทั้ง s.userId, s.id, s.memberId)
           (data.tab1Expenses || []).forEach(exp => {
             (exp.splits || []).forEach(s => {
-              let memberId = s.userId || s.id;
-              if (memberId === m.id) {
+              let mId = s.userId || s.id || s.memberId;
+              if (mId === m.id) {
                 personTotalExpense += parseFloat(s.share) || 0;
               }
             });
           });
 
-          // รวมภาระค่าใช้จ่ายจาก Tab 2
+          // คำนวณจาก Tab 2
           (data.tab2Deposits || []).forEach(dep => {
             (dep.details || []).forEach(d => {
-              let memberId = d.userId || d.id;
-              if (memberId === m.id) {
+              let mId = d.userId || d.id || d.memberId;
+              if (mId === m.id) {
                 let shareAmt = d.expectedShare > 0 ? d.expectedShare : (d.isTarget ? ((parseFloat(dep.fullCost) || 0) / (dep.targetCount || 1)) : 0);
                 personTotalExpense += parseFloat(shareAmt) || 0;
               }
