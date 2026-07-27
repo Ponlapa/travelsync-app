@@ -558,17 +558,32 @@
       if (!globalTripData) return;
       const data = globalTripData;
 
-      // 1. คำนวณ Net Balance (ยอดเงินสุทธิสะสม)
+      // Helper สำหรับแปลง ID เป็นชื่อสมาชิก + Icon
+      const getMemberName = (mId) => {
+        const found = (data.members || []).find(m => m.id === mId);
+        return found ? `${found.icon || '👤'} ${found.name}` : (mId || 'สมาชิก');
+      };
+
+      // Helper สำหรับดึง ID สมาชิกแบบยืดหยุ่น (รองรับทั้ง String และ Object)
+      const getMemberIdFromSplit = (item) => {
+        if (typeof item === 'string') return item;
+        return item ? (item.userId || item.id || item.memberId || item.user_id) : null;
+      };
+
+      // ------------------------------------------
+      // 1. คำนวณ Net Balance สะสม
+      // ------------------------------------------
       const summaryMap = (data.members || []).reduce((acc, curr) => { acc[curr.id] = 0; return acc; }, {});
-      
+
       (data.tab1Expenses || []).forEach(exp => {
         let pId = exp.payerId || exp.payer_id;
         if (summaryMap[pId] !== undefined) summaryMap[pId] += parseFloat(exp.totalAmount) || 0;
-        
+
         (exp.splits || []).forEach(s => {
-          let mId = s.userId || s.id || s.memberId;
+          let mId = getMemberIdFromSplit(s);
+          let shareAmt = typeof s === 'object' && s.share !== undefined ? parseFloat(s.share) : (parseFloat(exp.totalAmount) / (exp.splits.length || 1));
           if (mId && summaryMap[mId] !== undefined) {
-            summaryMap[mId] -= parseFloat(s.share) || 0;
+            summaryMap[mId] -= shareAmt;
           }
         });
       });
@@ -577,7 +592,7 @@
       document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined, {minimumFractionDigits:2})} บาท`;
 
       // ==========================================
-      // TAB 1: บิลทั่วไป
+      // TAB 1: ประวัติบิลทั่วไป (พร้อมปุ่ม Show/Hide)
       // ==========================================
       const t1Container = document.getElementById("tab1-list-container"); 
       if (t1Container) {
@@ -586,11 +601,17 @@
           t1Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบรายการบิลทั่วไป</div>`;
         } else {
           data.tab1Expenses.forEach((h) => {
+            let totalAmt = parseFloat(h.totalAmount) || 0;
+            let splitsCount = (h.splits || []).length || 1;
+            let defaultShare = totalAmt / splitsCount;
+
             let splitsHtml = (h.splits || []).map(s => {
-              let sName = s.name || s.userName || "สมาชิก";
-              return `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${sName} ➔ ภาระ: ฿${parseFloat(s.share || 0).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`;
+              let mId = getMemberIdFromSplit(s);
+              let displayName = (typeof s === 'object' && s.name) ? s.name : getMemberName(mId);
+              let shareAmt = (typeof s === 'object' && s.share !== undefined) ? parseFloat(s.share) : defaultShare;
+              return `<div class="text-[11px] text-slate-600 font-bold pl-4 border-l-2 border-slate-200">${displayName} ➔ ภาระ: ฿${shareAmt.toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`;
             }).join("");
-            
+
             const isPayer = (currentUser && currentUser.id === (h.payerId || h.payer_id));
             let actionBtn = "";
             if (h.status === "Pending") {
@@ -600,26 +621,37 @@
             } else {
               actionBtn = `<span class="badge badge-neutral text-[9px] font-black p-1.5 h-5">จ่ายจบแล้ว</span>`;
             }
-            
+
             t1Container.innerHTML += `
               <div id="tab1-row-${h.billId}" class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
-                <div onclick="document.getElementById('tab1-col-${h.billId}').classList.toggle('hidden');" class="pr-32 pl-4 py-3 text-xs cursor-pointer hover:bg-slate-100">
-                  <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
-                  <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName || h.payer_name}</span>
-                  <div class="font-black text-slate-700 mt-1.5 text-sm">ยอดเงินสด: ฿${parseFloat(h.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
+                <div class="p-3 flex justify-between items-start">
+                  <div class="min-w-0 flex-1 pr-2">
+                    <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+                    <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName || getMemberName(h.payerId || h.payer_id)}</span>
+                    <div class="font-black text-slate-700 mt-1 text-sm">ยอดเงินสด: ฿${totalAmt.toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
+                  </div>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" 
+                            onclick="const col = document.getElementById('tab1-col-${h.billId}'); const isHidden = col.classList.contains('hidden'); col.classList.toggle('hidden'); this.innerText = isHidden ? 'Hide 🔼' : 'Show 🔽';" 
+                            class="btn btn-xs bg-slate-200 border-0 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-[10px] px-2 min-h-0 h-6">
+                      Show 🔽
+                    </button>
+                    <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-xs btn-circle btn-error text-white border-0 bg-red-500 w-6 h-6 min-h-0 flex items-center justify-center"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                  </div>
                 </div>
-                <div class="absolute right-3 top-2.5 flex items-center gap-1.5 z-30">
-                  ${actionBtn}
-                  <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                <div id="tab1-col-${h.billId}" class="hidden bg-white border-t border-slate-100 p-3 space-y-1.5">
+                  ${splitsHtml}
+                  <div class="pt-2 border-t border-slate-100 flex justify-end">
+                    ${actionBtn}
+                  </div>
                 </div>
-                <div id="tab1-col-${h.billId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${splitsHtml}</div>
               </div>`;
           });
         }
       }
 
       // ==========================================
-      // TAB 2: บิลมัดจำ
+      // TAB 2: ประวัติบิลมัดจำ (พร้อมปุ่ม Show/Hide)
       // ==========================================
       const t2Container = document.getElementById("tab2-list-container"); 
       if (t2Container) {
@@ -630,30 +662,47 @@
           data.tab2Deposits.forEach((h) => {
             const expectedPaidAmt = (parseFloat(h.fullCost) || 0) - (parseFloat(h.totalDeposit) || 0);
             const displayPaidAmt = h.status === "Awaiting_Final" ? expectedPaidAmt : (parseFloat(h.finalPaid) || 0);
-            let detailsHtml = (h.details || []).map(d => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${d.name} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit || 0).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
+
+            let detailsHtml = (h.details || []).map(d => {
+              let mId = getMemberIdFromSplit(d);
+              let displayName = (typeof d === 'object' && d.name) ? d.name : getMemberName(mId);
+              return `<div class="text-[11px] text-slate-600 font-bold pl-4 border-l-2 border-slate-200">${displayName} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit || 0).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`;
+            }).join("");
+
             let actionBtn = h.status === "Awaiting_Final" 
-              ? `<button id="btn-final-t2-${h.depId}" onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-7 min-h-0 text-[10px] px-2">อัพเดทจ่ายเงิน 🏨</button>` 
-              : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">${h.status === "Ready_To_Settle" ? "รอเคลียร์หนี้" : "ปิดโครงการ"}</span>`;
-            
+              ? `<button id="btn-final-t2-${h.depId}" onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-6 min-h-0 text-[10px] px-2 rounded-lg">อัพเดทจ่ายเงิน 🏨</button>` 
+              : `<span class="badge badge-neutral text-[9px] font-black p-1.5 h-5">${h.status === "Ready_To_Settle" ? "รอเคลียร์หนี้" : "ปิดโครงการ"}</span>`;
+
             t2Container.innerHTML += `
               <div id="tab2-row-${h.depId}" class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
-                <div onclick="document.getElementById('tab2-col-${h.depId}').classList.toggle('hidden');" class="pl-4 py-3 pr-4 text-xs cursor-pointer hover:bg-slate-100">
-                  <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
-                  <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                <div class="p-3 flex justify-between items-start">
+                  <div class="min-w-0 flex-1 pr-2">
+                    <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+                    <span class="text-[10px] text-slate-400 font-bold block mt-0.5">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                    <span class="text-[10px] font-bold text-slate-500 block mt-1">วันจริงจ่ายเพิ่ม: <b class="text-slate-700">฿${displayPaidAmt.toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
+                  </div>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" 
+                            onclick="const col = document.getElementById('tab2-col-${h.depId}'); const isHidden = col.classList.contains('hidden'); col.classList.toggle('hidden'); this.innerText = isHidden ? 'Hide 🔼' : 'Show 🔽';" 
+                            class="btn btn-xs bg-slate-200 border-0 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-[10px] px-2 min-h-0 h-6">
+                      Show 🔽
+                    </button>
+                    <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-xs btn-circle btn-error text-white border-0 bg-red-500 w-6 h-6 min-h-0 flex items-center justify-center"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                  </div>
                 </div>
-                <div class="tab2-action-group p-3 border-t border-slate-100 flex items-center">
-                  <span class="text-[10px] font-bold text-slate-500 mr-auto">วันจริงจ่ายเพิ่ม: <b id="t2-final-lbl-${h.depId}" class="text-slate-700">฿${displayPaidAmt.toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
-                  ${actionBtn}
-                  <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center ml-2"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                <div id="tab2-col-${h.depId}" class="hidden bg-white border-t border-slate-100 p-3 space-y-1.5">
+                  ${detailsHtml}
+                  <div class="pt-2 border-t border-slate-100 flex justify-end">
+                    ${actionBtn}
+                  </div>
                 </div>
-                <div id="tab2-col-${h.depId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${detailsHtml}</div>
               </div>`;
           });
         }
       }
 
       // ==========================================
-      // TAB 3: สรุปยอดการจัดการเงิน (แสดงตามสมาชิกทุกคน)
+      // TAB 3: ยอดการจัดการเงิน (สรุปแยกรายคน)
       // ==========================================
       const t3Container = document.getElementById("tab3-list-container"); 
       if (t3Container) {
@@ -668,8 +717,7 @@
               let fId = ins.fromId || ins.from_id;
               let tId = ins.toId || ins.to_id;
               if (fId === m.id && parseFloat(ins.amount) > 0) {
-                let recipient = (data.members || []).find(x => x.id === tId);
-                let recipientName = recipient ? `${recipient.icon || '👤'} ${recipient.name}` : (ins.toName || ins.to_name || "สมาชิก");
+                let recipientName = getMemberName(tId);
                 listRowsHtml += `
                   <div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-100 font-bold">
                     <span class="text-slate-600">จ่ายให้ <b>${recipientName}</b></span>
@@ -698,29 +746,34 @@
       }
 
       // ==========================================
-      // TAB 4: สรุปภาระค่าใช้จ่ายสะสมรวมรายคน (Tab 1 + Tab 2)
+      // TAB 4: สรุปภาระค่าใช้จ่ายสะสมรวมรายคน
       // ==========================================
       const t4Container = document.getElementById("tab4-list-container"); 
       if (t4Container) {
         t4Container.innerHTML = "";
-        
+
         (data.members || []).forEach(m => {
           let personTotalExpense = 0;
 
-          // คำนวณจาก Tab 1 (ตรวจเช็คทั้ง s.userId, s.id, s.memberId)
+          // รวมภาระค่าใช้จ่าย Tab 1
           (data.tab1Expenses || []).forEach(exp => {
+            let totalAmt = parseFloat(exp.totalAmount) || 0;
+            let splitsCount = (exp.splits || []).length || 1;
+            let defaultShare = totalAmt / splitsCount;
+
             (exp.splits || []).forEach(s => {
-              let mId = s.userId || s.id || s.memberId;
+              let mId = getMemberIdFromSplit(s);
               if (mId === m.id) {
-                personTotalExpense += parseFloat(s.share) || 0;
+                let shareAmt = (typeof s === 'object' && s.share !== undefined) ? parseFloat(s.share) : defaultShare;
+                personTotalExpense += shareAmt;
               }
             });
           });
 
-          // คำนวณจาก Tab 2
+          // รวมภาระค่าใช้จ่าย Tab 2
           (data.tab2Deposits || []).forEach(dep => {
             (dep.details || []).forEach(d => {
-              let mId = d.userId || d.id || d.memberId;
+              let mId = getMemberIdFromSplit(d);
               if (mId === m.id) {
                 let shareAmt = d.expectedShare > 0 ? d.expectedShare : (d.isTarget ? ((parseFloat(dep.fullCost) || 0) / (dep.targetCount || 1)) : 0);
                 personTotalExpense += parseFloat(shareAmt) || 0;
@@ -1014,13 +1067,29 @@
     }
 
     function submitTab1Expense() {
-      const amt = document.getElementById("t1-amount").value, note = document.getElementById("t1-note").value.trim(), cat = document.getElementById("t1-cat").value;
-      if(!amt || parseFloat(amt) <= 0 || !note) return;
+      const amt = document.getElementById("t1-amount").value;
+      const note = document.getElementById("t1-note").value.trim();
+      const cat = document.getElementById("t1-cat").value;
+
+      if (!amt || parseFloat(amt) <= 0 || !note) return;
+
       const chks = document.getElementsByName("chk-t1-user");
-      const splitArray = []; for(let i=0; i<chks.length; i++) { if(chks[i].checked) splitArray.push(chks[i].value); }
+      const splitArray = []; 
+      for (let i = 0; i < chks.length; i++) { 
+        if (chks[i].checked) splitArray.push(chks[i].value); // ส่ง 'U001', 'U002' ตรงๆ
+      }
+
       closeBottomSheet("modal-add-tab1");
-      callAPI(WEB_APP_URL, 'POST', { action: "addExpenseNew", tripId: currentTripId, note: note, category: cat, totalAmount: amt, payerId: currentUser.id, splits: splitArray })
-        .then(() => silentSyncFinancialData());
+
+      callAPI(WEB_APP_URL, 'POST', { 
+        action: "addExpenseNew", 
+        tripId: currentTripId, 
+        note: note, 
+        category: cat, 
+        totalAmount: amt, 
+        payerId: currentUser.id, 
+        splits: splitArray 
+      }).then(() => silentSyncFinancialData());
     }
 
     function submitTab2DepositMaster() {
