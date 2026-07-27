@@ -661,16 +661,35 @@
 
       // TAB 4
       const t4Container = document.getElementById("tab4-list-container"); 
-      if(t4Container) {
-        t4Container.innerHTML = "";
-        (data.members || []).forEach(m => {
-          let netAmt = summaryMap[m.id] || 0;
-          let colorClass = netAmt >= 0 ? "text-emerald-600" : "text-rose-600";
-          let prefixStr = netAmt >= 0 ? "สุทธิ (ได้คืน): +" : "สุทธิ (ต้องจ่าย): ";
-          t4Container.innerHTML += `<div class="flex justify-between items-center p-3 mb-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold"><span>${m.icon || '👤'} ${m.name}</span><span class="${colorClass} font-black">${prefixStr}฿${Math.abs(netAmt).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</span></div>`;
-        });
-      }
-    }
+if(t4Container) {
+  t4Container.innerHTML = "";
+  (data.members || []).forEach(m => {
+    let personTotalExpense = 0;
+
+    // 1. รวมภาระจาก Tab 1
+    (data.tab1Expenses || []).forEach(exp => {
+      (exp.splits || []).forEach(s => {
+        if (s.id === m.id) personTotalExpense += parseFloat(s.share) || 0;
+      });
+    });
+
+    // 2. รวมภาระจาก Tab 2
+    (data.tab2Deposits || []).forEach(dep => {
+      (dep.details || []).forEach(d => {
+        if (d.id === m.id) {
+          let shareAmt = d.expectedShare > 0 ? d.expectedShare : (d.isTarget ? ((parseFloat(dep.fullCost) || 0) / (dep.targetCount || 1)) : 0);
+          personTotalExpense += parseFloat(shareAmt) || 0;
+        }
+      });
+    });
+
+    t4Container.innerHTML += `
+      <div class="flex justify-between items-center p-3.5 mb-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+        <span class="text-slate-800">${m.icon || '👤'} ${m.name}</span>
+        <span class="text-primary font-black text-sm">ค่าใช้จ่ายรวม: ฿${personTotalExpense.toLocaleString(undefined,{minimumFractionDigits:2})} บาท</span>
+      </div>`;
+  });
+}
 
     function silentSyncFinancialData() {
       if (!currentTripId) return;
@@ -1023,7 +1042,24 @@
       }); 
     }
 
-    function deleteTab1Bill(billId) { 
+    function deleteTab1Bill(billId) {
+  if (window.event) window.event.stopPropagation();
+  Swal.fire({
+    title: 'ยืนยันลบบิลนี้?',
+    text: "รายการค่าใช้จ่ายนี้จะถูกลบทิ้งอย่างถาวร!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#94a3b8',
+    confirmButtonText: 'ใช่, ลบทันที!',
+    cancelButtonText: 'ยกเลิก',
+    customClass: {
+      confirmButton: 'btn bg-red-500 text-white font-black px-4 mx-1 border-0',
+      cancelButton: 'btn bg-slate-400 text-white font-black px-4 mx-1 border-0'
+    },
+    buttonsStyling: false
+  }).then((result) => {
+    if (result.isConfirmed) {
       const row = document.getElementById(`tab1-row-${billId}`);
       if(row) row.remove();
       callAPI(WEB_APP_URL, 'POST', { action: "deleteExpenseNew", billId: billId }).then(() => {
@@ -1032,10 +1068,29 @@
           reCalculateAndRenderFinancialViews();
         }
         silentSyncFinancialData();
-      }); 
+      });
     }
+  });
+}
 
-    function deleteTab2Bill(depId) { 
+    function deleteTab2Bill(depId) {
+  if (window.event) window.event.stopPropagation();
+  Swal.fire({
+    title: 'ยืนยันลบโครงการมัดจำ?',
+    text: "รายการมัดจำและข้อมูลการโอนทั้งหมดจะถูกลบทิ้งถาวร!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#94a3b8',
+    confirmButtonText: 'ใช่, ลบทันที!',
+    cancelButtonText: 'ยกเลิก',
+    customClass: {
+      confirmButton: 'btn bg-red-500 text-white font-black px-4 mx-1 border-0',
+      cancelButton: 'btn bg-slate-400 text-white font-black px-4 mx-1 border-0'
+    },
+    buttonsStyling: false
+  }).then((result) => {
+    if (result.isConfirmed) {
       const row = document.getElementById(`tab2-row-${depId}`);
       if(row) row.remove();
       callAPI(WEB_APP_URL, 'POST', { action: "deleteDepositFull", depId: depId }).then(() => {
@@ -1045,9 +1100,10 @@
           reCalculateAndRenderFinancialViews();
         }
         silentSyncFinancialData();
-      }); 
+      });
     }
-
+  });
+}
     function handleMemberAction(targetUserId, actionType) { 
       const row = document.getElementById(`pending-row-${targetUserId}`);
       if(row) row.innerHTML = `<span class="text-slate-400 font-medium italic">กำลังประมวลผลระบบ...</span>`;
