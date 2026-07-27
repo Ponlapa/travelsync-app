@@ -619,6 +619,8 @@ if (h.status === "Pending") {
           t2Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบโครงการมัดจำ</div>`;
         } else {
           data.tab2Deposits.forEach((h) => {
+            const expectedPaidAmt = (parseFloat(h.fullCost) || 0) - (parseFloat(h.totalDeposit) || 0);
+const displayPaidAmt = h.status === "Awaiting_Final" ? expectedPaidAmt : (parseFloat(h.finalPaid) || 0);
             let detailsHtml = (h.details || []).map(d => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${d.name} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
             let actionBtn = h.status === "Awaiting_Final" 
               ? `<button id="btn-final-t2-${h.depId}" onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-7 min-h-0 text-[10px] px-2">อัพเดทจ่ายเงิน 🏨</button>` 
@@ -696,27 +698,6 @@ if (h.status === "Pending") {
       }
     }
 
-    function switchFinTab(tabIdx) {
-      activeCurrentFinTabIdx = tabIdx;
-      for(let i=1; i<=4; i++) {
-        const btn = document.getElementById(`tab-btn-${i}`); const content = document.getElementById(`fin-content-${i}`);
-        if(i === tabIdx) {
-          if(btn) btn.className = "tab tab-active flex-1 text-[11px] font-black rounded-lg px-1 truncate";
-          if(content) content.classList.remove("hidden");
-        } else {
-          if(btn) btn.className = "tab flex-1 text-[11px] font-black rounded-lg px-1 truncate bg-transparent text-slate-500";
-          if(btn) btn.style = "background-color:transparent !important; color:#475569 !important;";
-          if(content) content.classList.add("hidden");
-        }
-      }
-      const t1Zone = document.getElementById("t1-members-checkbox-zone");
-      if(t1Zone && tabIdx === 1 && globalTripData) {
-        t1Zone.innerHTML = "";
-        globalTripData.members.forEach(m => {
-          t1Zone.innerHTML += `<label class="flex items-center gap-2.5 p-2 bg-white border border-slate-200 rounded-xl cursor-pointer text-xs font-bold text-slate-700"><input type="checkbox" name="chk-t1-user" value="${m.id}" checked class="checkbox checkbox-primary checkbox-sm rounded-md"><span>${m.icon || '👤'} ${m.name}</span></label>`;
-        });
-      }
-    }
     let t1IsCustomMode = false;
 
     // ปรับปรุง switchFinTab ให้รองรับการวาดรายชื่อพร้อมช่องกรอกยอดเงินรายคน
