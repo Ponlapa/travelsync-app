@@ -570,110 +570,207 @@
       let safeTotalCost = (data.tab1Expenses || []).reduce((acc, curr) => acc + (parseFloat(curr.totalAmount) || 0), 0);
       document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined, {minimumFractionDigits:2})} บาท`;
 
-      // TAB 1
+      // ==========================================
+      // TAB 1: บิลทั่วไป (แยกตามวันที่ + ปุ่ม Show/Hide)
+      // ==========================================
       const t1Container = document.getElementById("tab1-list-container"); 
       if (t1Container) {
         t1Container.innerHTML = "";
         if (!data.tab1Expenses || data.tab1Expenses.length === 0) {
           t1Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบรายการบิลทั่วไป</div>`;
         } else {
-          data.tab1Expenses.forEach((h) => {
-            let splitsHtml = (h.splits || []).map(s => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${s.name} ➔ ภาระ: ฿${parseFloat(s.share).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
-            const isPayer = (currentUser && currentUser.id === h.payerId);
+          // จัดกลุ่มบิลตามวันที่
+          let groupedT1 = {};
+          data.tab1Expenses.forEach(exp => {
+            let dateStr = exp.createdAt || exp.date || "ไม่ระบุวันที่";
+            if (!groupedT1[dateStr]) groupedT1[dateStr] = [];
+            groupedT1[dateStr].push(exp);
+          });
 
-            let actionBtn = "";
-            if (h.status === "Pending") {
-              if (isPayer) {
-                actionBtn = `<button id="btn-close-t1-${h.billId}" onclick="confirmCloseTab1Bill('${h.billId}')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px] px-2.5">จ่ายเงินครบแล้ว ✅</button>`;
+          let t1Html = "";
+          Object.keys(groupedT1).sort().reverse().forEach(dateGroup => {
+            t1Html += `
+              <div class="mb-3">
+                <div class="text-[10px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-lg inline-block mb-2">
+                  🗓️ วันที่บันทึก: ${dateGroup}
+                </div>
+                <div class="space-y-2">`;
+
+            groupedT1[dateGroup].forEach((h) => {
+              let splitsHtml = (h.splits || []).map(s => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${s.name} ➔ ภาระ: ฿${parseFloat(s.share).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
+              const isPayer = (currentUser && currentUser.id === h.payerId);
+
+              let actionBtn = "";
+              if (h.status === "Pending") {
+                if (isPayer) {
+                  actionBtn = `<button id="btn-close-t1-${h.billId}" onclick="event.stopPropagation(); confirmCloseTab1Bill('${h.billId}')" class="btn btn-xs btn-success text-white font-bold h-6 min-h-0 text-[10px] px-2 rounded-lg">จ่ายเงินครบแล้ว ✅</button>`;
+                } else {
+                  actionBtn = `<span class="badge badge-warning text-[9px] font-black p-1.5 h-5">รอคนจ่ายกดปิด</span>`;
+                }
               } else {
-                actionBtn = `<span class="badge badge-warning text-[9px] font-black p-2 h-6">รอคนจ่ายกดปิด</span>`;
+                actionBtn = `<span class="badge badge-neutral text-[9px] font-black p-1.5 h-5">จ่ายจบแล้ว</span>`;
               }
-            } else {
-              actionBtn = `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">จ่ายจบแล้ว</span>`;
-            }
-            
-            t1Container.innerHTML += `
-              <div id="tab1-row-${h.billId}" class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
-                <div onclick="document.getElementById('tab1-col-${h.billId}').classList.toggle('hidden');" class="pr-32 pl-4 py-3 text-xs cursor-pointer hover:bg-slate-100">
-                  <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
-                  <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName}</span>
-                  <div class="font-black text-slate-700 mt-1.5 text-sm">ยอดเงินสด: ฿${parseFloat(h.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
+
+              t1Html += `
+                <div id="tab1-row-${h.billId}" class="w-full bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
+                  <div class="p-3 flex justify-between items-start">
+                    <div class="min-w-0 flex-1 pr-2">
+                      <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+                      <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName}</span>
+                      <div class="font-black text-slate-700 mt-1 text-sm">ยอดเงินสด: ฿${parseFloat(h.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <button type="button" 
+                              onclick="const col = document.getElementById('tab1-col-${h.billId}'); const isHidden = col.classList.contains('hidden'); col.classList.toggle('hidden'); this.innerText = isHidden ? 'Hide 🔼' : 'Show 🔽';" 
+                              class="btn btn-xs bg-slate-200 border-0 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-[10px] px-2 min-h-0 h-6">
+                        Show 🔽
+                      </button>
+                      <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-xs btn-circle btn-error text-white border-0 bg-red-500 w-6 h-6 min-h-0 flex items-center justify-center"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                    </div>
+                  </div>
+                  <!-- โซน Detail ที่พับเก็บได้ -->
+                  <div id="tab1-col-${h.billId}" class="hidden bg-white border-t border-slate-100 p-3 space-y-1.5">
+                    ${splitsHtml}
+                    <div class="pt-2 border-t border-slate-100 flex justify-end">
+                      ${actionBtn}
+                    </div>
+                  </div>
+                </div>`;
+            });
+
+            t1Html += `
                 </div>
-                <div class="absolute right-3 top-2.5 flex items-center gap-1.5 z-30">
-                  ${actionBtn}
-                  <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
-                </div>
-                <div id="tab1-col-${h.billId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${splitsHtml}</div>
               </div>`;
           });
+          t1Container.innerHTML = t1Html;
         }
       }
 
-      // TAB 2
+      // ==========================================
+      // TAB 2: บิลมัดจำ (แยกตามวันที่ + ปุ่ม Show/Hide)
+      // ==========================================
       const t2Container = document.getElementById("tab2-list-container"); 
       if (t2Container) {
         t2Container.innerHTML = "";
         if (!data.tab2Deposits || data.tab2Deposits.length === 0) {
           t2Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบโครงการมัดจำ</div>`;
         } else {
-          data.tab2Deposits.forEach((h) => {
-            const expectedPaidAmt = (parseFloat(h.fullCost) || 0) - (parseFloat(h.totalDeposit) || 0);
-            const displayPaidAmt = h.status === "Awaiting_Final" ? expectedPaidAmt : (parseFloat(h.finalPaid) || 0);
-            let detailsHtml = (h.details || []).map(d => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${d.name} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
-            let actionBtn = h.status === "Awaiting_Final" 
-              ? `<button id="btn-final-t2-${h.depId}" onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-7 min-h-0 text-[10px] px-2">อัพเดทจ่ายเงิน 🏨</button>` 
-              : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">${h.status === "Ready_To_Settle" ? "รอเคลียร์หนี้" : "ปิดโครงการ"}</span>`;
-            
-            t2Container.innerHTML += `
-              <div id="tab2-row-${h.depId}" class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
-                <div onclick="document.getElementById('tab2-col-${h.depId}').classList.toggle('hidden');" class="pl-4 py-3 pr-4 text-xs cursor-pointer hover:bg-slate-100">
-                  <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
-                  <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+          // จัดกลุ่มบิลตามวันที่
+          let groupedT2 = {};
+          data.tab2Deposits.forEach(dep => {
+            let dateStr = dep.createdAt || dep.date || "ไม่ระบุวันที่";
+            if (!groupedT2[dateStr]) groupedT2[dateStr] = [];
+            groupedT2[dateStr].push(dep);
+          });
+
+          let t2Html = "";
+          Object.keys(groupedT2).sort().reverse().forEach(dateGroup => {
+            t2Html += `
+              <div class="mb-3">
+                <div class="text-[10px] font-black text-secondary bg-secondary/10 px-2.5 py-1 rounded-lg inline-block mb-2">
+                  🗓️ วันที่บันทึก: ${dateGroup}
                 </div>
-                <div class="tab2-action-group p-3 border-t border-slate-100 flex items-center">
-                  <span class="text-[10px] font-bold text-slate-500 mr-auto">วันจริงจ่ายเพิ่ม: <b id="t2-final-lbl-${h.depId}" class="text-slate-700">฿${displayPaidAmt.toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
-                  ${actionBtn}
-                  <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center ml-2"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                <div class="space-y-2">`;
+
+            groupedT2[dateGroup].forEach((h) => {
+              const expectedPaidAmt = (parseFloat(h.fullCost) || 0) - (parseFloat(h.totalDeposit) || 0);
+              const displayPaidAmt = h.status === "Awaiting_Final" ? expectedPaidAmt : (parseFloat(h.finalPaid) || 0);
+              let detailsHtml = (h.details || []).map(d => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${d.name} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
+              let actionBtn = h.status === "Awaiting_Final" 
+                ? `<button id="btn-final-t2-${h.depId}" onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-6 min-h-0 text-[10px] px-2 rounded-lg">อัพเดทจ่ายเงิน 🏨</button>` 
+                : `<span class="badge badge-neutral text-[9px] font-black p-1.5 h-5">${h.status === "Ready_To_Settle" ? "รอเคลียร์หนี้" : "ปิดโครงการ"}</span>`;
+
+              t2Html += `
+                <div id="tab2-row-${h.depId}" class="w-full bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
+                  <div class="p-3 flex justify-between items-start">
+                    <div class="min-w-0 flex-1 pr-2">
+                      <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
+                      <span class="text-[10px] text-slate-400 font-bold block mt-0.5">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
+                      <span class="text-[10px] font-bold text-slate-500 block mt-1">วันจริงจ่ายเพิ่ม: <b class="text-slate-700">฿${displayPaidAmt.toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
+                    </div>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <button type="button" 
+                              onclick="const col = document.getElementById('tab2-col-${h.depId}'); const isHidden = col.classList.contains('hidden'); col.classList.toggle('hidden'); this.innerText = isHidden ? 'Hide 🔼' : 'Show 🔽';" 
+                              class="btn btn-xs bg-slate-200 border-0 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-[10px] px-2 min-h-0 h-6">
+                        Show 🔽
+                      </button>
+                      <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-xs btn-circle btn-error text-white border-0 bg-red-500 w-6 h-6 min-h-0 flex items-center justify-center"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
+                    </div>
+                  </div>
+                  <!-- โซน Detail ที่พับเก็บได้ -->
+                  <div id="tab2-col-${h.depId}" class="hidden bg-white border-t border-slate-100 p-3 space-y-1.5">
+                    ${detailsHtml}
+                    <div class="pt-2 border-t border-slate-100 flex justify-end">
+                      ${actionBtn}
+                    </div>
+                  </div>
+                </div>`;
+            });
+
+            t2Html += `
                 </div>
-                <div id="tab2-col-${h.depId}" class="hidden bg-white border-t border-slate-100 p-3.5 space-y-1.5">${detailsHtml}</div>
               </div>`;
           });
+          t2Container.innerHTML = t2Html;
         }
       }
 
       // TAB 3: ยอดเงินสุทธิสะสม + จับคู่โอน
       const t3Container = document.getElementById("tab3-list-container"); 
-      if(t3Container) {
+      if (t3Container) {
         t3Container.innerHTML = "";
-        
-        let netSummaryHtml = `<div class="mb-2"><span class="text-[10px] text-slate-400 font-bold">ยอดเงินสุทธิสะสมแยกรายคน (Real-time)</span></div><div class="space-y-1.5 mb-4">`;
+
+        // 1. คำนวณสรุปการโอนเงินเฉลี่ยหนี้มัดจำทั้งหมด (Grouped by Member)
+        // รวบรวมคำสั่งโอนเงินจากทุกบิลใน tab3Settlements
+        let settlementMap = {}; // Structure: { payerId: { recipientId: totalAmount } }
+
+        (data.members || []).forEach(m => { settlementMap[m.id] = {}; });
+
+        (data.tab3Settlements || []).forEach(s => {
+          (s.instructions || []).forEach(ins => {
+            if (ins.fromId && ins.toId && ins.amount > 0) {
+              if (!settlementMap[ins.fromId]) settlementMap[ins.fromId] = {};
+              if (!settlementMap[ins.fromId][ins.toId]) settlementMap[ins.fromId][ins.toId] = 0;
+              settlementMap[ins.fromId][ins.toId] += parseFloat(ins.amount) || 0;
+            }
+          });
+        });
+
+        // 2. วาด UI แยกตามรายชื่อผู้ร่วมทริป
+        let html = `<div class="mb-2"><span class="text-[10px] text-slate-400 font-bold">ยอดการจัดการเงิน (สรุปรายการต้องจ่ายแยกรายคน)</span></div>`;
+
         (data.members || []).forEach(m => {
-          let netAmt = summaryMap[m.id] || 0;
-          let colorClass = netAmt >= 0 ? "text-emerald-600" : "text-rose-600";
-          let prefixStr = netAmt >= 0 ? "สุทธิ (ได้คืน): +" : "สุทธิ (ต้องจ่าย): ";
-          netSummaryHtml += `
-            <div class="flex justify-between items-center p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
-              <span>${m.icon || '👤'} ${m.name}</span>
-              <span class="${colorClass} font-black">${prefixStr}฿${Math.abs(netAmt).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</span>
+          let payList = settlementMap[m.id] || {};
+          let payKeys = Object.keys(payList).filter(toId => payList[toId] > 0);
+
+          let listRowsHtml = "";
+          if (payKeys.length === 0) {
+            listRowsHtml = `<div class="text-[11px] text-slate-400 italic py-1">ไม่ต้องจ่ายเงินให้ใครเพิ่มเติม</div>`;
+          } else {
+            payKeys.forEach(toId => {
+              let recipient = (data.members || []).find(x => x.id === toId);
+              let recipientName = recipient ? `${recipient.icon || '👤'} ${recipient.name}` : toId;
+              let amt = payList[toId];
+              listRowsHtml += `
+                <div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-100 font-bold">
+                  <span class="text-slate-600">จ่ายให้ <b>${recipientName}</b></span>
+                  <span class="text-rose-600 font-black">➔ ฿${amt.toLocaleString(undefined, {minimumFractionDigits: 2})} บาท</span>
+                </div>`;
+            });
+          }
+
+          html += `
+            <div class="card bg-white border border-slate-200 p-3.5 rounded-2xl mb-2.5 shadow-2xs">
+              <div class="font-black text-xs text-slate-800 border-b pb-2 mb-1 flex items-center gap-1.5">
+                <span>${m.icon || '👤'} ${m.name}</span>
+              </div>
+              <div class="flex flex-col gap-0.5">
+                ${listRowsHtml}
+              </div>
             </div>`;
         });
-        netSummaryHtml += `</div><div class="mb-2"><span class="text-[10px] text-slate-400 font-bold">รายการจับคู่โอนเงินเพื่อเฉลี่ยเงินมัดจำล่วงหน้า</span></div>`;
-        
-        let settlementsHtml = "";
-        if(!data.tab3Settlements || data.tab3Settlements.length === 0) { 
-          settlementsHtml = `<div class="text-center py-4 text-xs font-bold bg-slate-50 rounded-xl border border-dashed">ไม่มีคิวจับคู่โอนเคลียร์หนี้เงินมัดจำ</div>`; 
-        } else {
-          data.tab3Settlements.forEach(s => {
-            let rowHtml = (s.instructions || []).map(ins => `<div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-100 font-bold"><span>${ins.fromName} โอนให้ ➔ <b>${ins.toName}</b></span><span class="text-primary font-black">฿${parseFloat(ins.amount).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</span></div>`).join("");
-            settlementsHtml += `
-              <div id="tab3-card-${s.depId}" class="card bg-white border-2 border-slate-200 p-4 rounded-2xl flex flex-col gap-1.5 mb-2 shadow-2xs">
-                <div class="font-black text-sm border-b pb-2 flex justify-between items-center"><span>🏨 บิลมัดจำ: ${s.note}</span><button id="btn-archive-t3-${s.depId}" onclick="closeDepositJob('${s.depId}')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px]">ยืนยันจ่ายเงินเรียบร้อย 🔒</button></div>
-                <div class="flex flex-col gap-1 mt-1">${rowHtml}</div>
-              </div>`;
-          });
-        }
-        
-        t3Container.innerHTML = netSummaryHtml + settlementsHtml;
+
+        t3Container.innerHTML = html;
       }
 
       // TAB 4: สรุปภาระค่าใช้จ่ายสะสมรวมรายคน (Tab 1 + Tab 2)
