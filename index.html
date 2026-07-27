@@ -222,7 +222,7 @@
           </div>
 
           <div id="fin-content-4" class="hidden flex-1 flex flex-col min-h-0">
-            <div class="mb-1 shrink-0"><span class="text-[10px] text-slate-400 font-bold">ยอดเงินสุทธิสะสมแยกรายคน (Real-time)</span></div>
+            <div class="mb-1 shrink-0"><span class="text-[10px] text-slate-400 font-bold">สรุปภาระค่าใช้จ่ายสะสมรวมรายคน (Tab 1 + Tab 2)</span></div>
             <div id="tab4-list-container" class="space-y-2"></div>
           </div>
         </div> 
@@ -641,12 +641,11 @@
         }
       }
 
-      // TAB 3
+      // TAB 3: ยอดเงินสุทธิสะสม + จับคู่โอน
       const t3Container = document.getElementById("tab3-list-container"); 
       if(t3Container) {
         t3Container.innerHTML = "";
         
-        // 1. วาดส่วนยอดเงินสุทธิสะสมแยกรายคน
         let netSummaryHtml = `<div class="mb-2"><span class="text-[10px] text-slate-400 font-bold">ยอดเงินสุทธิสะสมแยกรายคน (Real-time)</span></div><div class="space-y-1.5 mb-4">`;
         (data.members || []).forEach(m => {
           let netAmt = summaryMap[m.id] || 0;
@@ -660,7 +659,6 @@
         });
         netSummaryHtml += `</div><div class="mb-2"><span class="text-[10px] text-slate-400 font-bold">รายการจับคู่โอนเงินเพื่อเฉลี่ยเงินมัดจำล่วงหน้า</span></div>`;
         
-        // 2. วาดรายการจับคู่โอน
         let settlementsHtml = "";
         if(!data.tab3Settlements || data.tab3Settlements.length === 0) { 
           settlementsHtml = `<div class="text-center py-4 text-xs font-bold bg-slate-50 rounded-xl border border-dashed">ไม่มีคิวจับคู่โอนเคลียร์หนี้เงินมัดจำ</div>`; 
@@ -678,7 +676,7 @@
         t3Container.innerHTML = netSummaryHtml + settlementsHtml;
       }
 
-      // TAB 4
+      // TAB 4: สรุปภาระค่าใช้จ่ายสะสมรวมรายคน (Tab 1 + Tab 2)
       const t4Container = document.getElementById("tab4-list-container"); 
       if(t4Container) {
         t4Container.innerHTML = "";
@@ -710,6 +708,8 @@
             </div>`;
         });
       }
+    }
+
     function silentSyncFinancialData() {
       if (!currentTripId) return;
       callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${currentTripId}`).then(freshData => {
@@ -740,21 +740,18 @@
       }
     }
 
-    // ✨ ปรับปรุง switchFinTab รองรับทั้งสลับแท็บและวาดแบบฟอร์มคีย์ตามจริง
     function switchFinTab(tabIdx) {
       activeCurrentFinTabIdx = tabIdx;
       for(let i=1; i<=4; i++) {
         const btn = document.getElementById(`tab-btn-${i}`); 
         const content = document.getElementById(`fin-content-${i}`);
-      if(i === tabIdx) {
-          // ✨ ปุ่มที่เลือกอยู่: ใส่ Shadow เข้ม + ตัวหนังสือเด่นชัด + ขอบเน้น
+        if(i === tabIdx) {
           if(btn) {
             btn.className = "tab flex-1 text-[11px] font-black rounded-xl px-1 truncate bg-primary text-white shadow-md shadow-cyan-500/30 border-2 border-primary transition-all scale-105 z-10";
-            btn.style = ""; // ล้าง style เดิมออกเพื่อให้ class bg-primary ทำงาน
+            btn.style = "";
           }
           if(content) content.classList.remove("hidden");
         } else {
-          // ✨ ปุ่มที่ไม่ไดเลือก: ปรับให้จางลง ไม่มี shadow
           if(btn) {
             btn.className = "tab flex-1 text-[11px] font-bold rounded-xl px-1 truncate bg-white text-slate-400 border border-slate-200 transition-all opacity-70";
             btn.style = "background-color:#ffffff !important; color:#94a3b8 !important;";
@@ -763,7 +760,6 @@
         }
       }
 
-      // วาดรายชื่อสมาชิกใน Modal Tab 1
       const t1Zone = document.getElementById("t1-members-checkbox-zone");
       if(t1Zone && tabIdx === 1 && globalTripData) {
         t1Zone.innerHTML = "";
@@ -867,14 +863,14 @@
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#00E0BA',
-        cancelButtonColor: '#ef4444', // สีแดงสว่างสำหรับปุ่มยกเลิก
+        cancelButtonColor: '#ef4444',
         confirmButtonText: 'ใช่, จ่ายครบแล้ว!',
         cancelButtonText: 'ยกเลิก',
         customClass: {
           confirmButton: 'btn btn-primary text-white font-black px-4 mx-1',
           cancelButton: 'btn bg-red-500 hover:bg-red-600 text-white font-black border-0 px-4 mx-1'
         },
-        buttonsStyling: false // ปิดการใช้ Style ตั้งต้นของ SweetAlert แล้วใช้ Class ของ Tailwind/DaisyUI แทน
+        buttonsStyling: false
       }).then((result) => {
         if (result.isConfirmed) {
           changeTab1BillStatus(billId, 'Closed');
@@ -1062,67 +1058,68 @@
     }
 
     function deleteTab1Bill(billId) {
-  if (window.event) window.event.stopPropagation();
-  Swal.fire({
-    title: 'ยืนยันลบบิลนี้?',
-    text: "รายการค่าใช้จ่ายนี้จะถูกลบทิ้งอย่างถาวร!",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#ef4444',
-    cancelButtonColor: '#94a3b8',
-    confirmButtonText: 'ใช่, ลบทันที!',
-    cancelButtonText: 'ยกเลิก',
-    customClass: {
-      confirmButton: 'btn bg-red-500 text-white font-black px-4 mx-1 border-0',
-      cancelButton: 'btn bg-slate-400 text-white font-black px-4 mx-1 border-0'
-    },
-    buttonsStyling: false
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const row = document.getElementById(`tab1-row-${billId}`);
-      if(row) row.remove();
-      callAPI(WEB_APP_URL, 'POST', { action: "deleteExpenseNew", billId: billId }).then(() => {
-        if(globalTripData) {
-          globalTripData.tab1Expenses = globalTripData.tab1Expenses.filter(x => x.billId !== billId);
-          reCalculateAndRenderFinancialViews();
+      if (window.event) window.event.stopPropagation();
+      Swal.fire({
+        title: 'ยืนยันลบบิลนี้?',
+        text: "รายการค่าใช้จ่ายนี้จะถูกลบทิ้งอย่างถาวร!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'ใช่, ลบทันที!',
+        cancelButtonText: 'ยกเลิก',
+        customClass: {
+          confirmButton: 'btn bg-red-500 text-white font-black px-4 mx-1 border-0',
+          cancelButton: 'btn bg-slate-400 text-white font-black px-4 mx-1 border-0'
+        },
+        buttonsStyling: false
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const row = document.getElementById(`tab1-row-${billId}`);
+          if(row) row.remove();
+          callAPI(WEB_APP_URL, 'POST', { action: "deleteExpenseNew", billId: billId }).then(() => {
+            if(globalTripData) {
+              globalTripData.tab1Expenses = globalTripData.tab1Expenses.filter(x => x.billId !== billId);
+              reCalculateAndRenderFinancialViews();
+            }
+            silentSyncFinancialData();
+          });
         }
-        silentSyncFinancialData();
       });
     }
-  });
-}
 
     function deleteTab2Bill(depId) {
-  if (window.event) window.event.stopPropagation();
-  Swal.fire({
-    title: 'ยืนยันลบโครงการมัดจำ?',
-    text: "รายการมัดจำและข้อมูลการโอนทั้งหมดจะถูกลบทิ้งถาวร!",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#ef4444',
-    cancelButtonColor: '#94a3b8',
-    confirmButtonText: 'ใช่, ลบทันที!',
-    cancelButtonText: 'ยกเลิก',
-    customClass: {
-      confirmButton: 'btn bg-red-500 text-white font-black px-4 mx-1 border-0',
-      cancelButton: 'btn bg-slate-400 text-white font-black px-4 mx-1 border-0'
-    },
-    buttonsStyling: false
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const row = document.getElementById(`tab2-row-${depId}`);
-      if(row) row.remove();
-      callAPI(WEB_APP_URL, 'POST', { action: "deleteDepositFull", depId: depId }).then(() => {
-        if(globalTripData) {
-          globalTripData.tab2Deposits = globalTripData.tab2Deposits.filter(x => x.depId !== depId);
-          globalTripData.tab3Settlements = globalTripData.tab3Settlements.filter(x => x.depId !== depId);
-          reCalculateAndRenderFinancialViews();
+      if (window.event) window.event.stopPropagation();
+      Swal.fire({
+        title: 'ยืนยันลบโครงการมัดจำ?',
+        text: "รายการมัดจำและข้อมูลการโอนทั้งหมดจะถูกลบทิ้งถาวร!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'ใช่, ลบทันที!',
+        cancelButtonText: 'ยกเลิก',
+        customClass: {
+          confirmButton: 'btn bg-red-500 text-white font-black px-4 mx-1 border-0',
+          cancelButton: 'btn bg-slate-400 text-white font-black px-4 mx-1 border-0'
+        },
+        buttonsStyling: false
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const row = document.getElementById(`tab2-row-${depId}`);
+          if(row) row.remove();
+          callAPI(WEB_APP_URL, 'POST', { action: "deleteDepositFull", depId: depId }).then(() => {
+            if(globalTripData) {
+              globalTripData.tab2Deposits = globalTripData.tab2Deposits.filter(x => x.depId !== depId);
+              globalTripData.tab3Settlements = globalTripData.tab3Settlements.filter(x => x.depId !== depId);
+              reCalculateAndRenderFinancialViews();
+            }
+            silentSyncFinancialData();
+          });
         }
-        silentSyncFinancialData();
       });
     }
-  });
-}
+
     function handleMemberAction(targetUserId, actionType) { 
       const row = document.getElementById(`pending-row-${targetUserId}`);
       if(row) row.innerHTML = `<span class="text-slate-400 font-medium italic">กำลังประมวลผลระบบ...</span>`;
