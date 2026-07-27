@@ -366,6 +366,37 @@
       </div>
     </div>
   </div>
+  <div id="modal-add-tab2-final" class="fixed inset-0 bg-black/60 z-50 hidden flex items-end sm:items-center justify-center transition-opacity duration-300 opacity-0">
+  <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 transform translate-y-full transition-transform duration-300 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+      <h3 class="font-black text-slate-800 text-base">🏨 อัพเดทจ่ายเงินงวดสุดท้ายหน้างาน</h3>
+      <button type="button" onclick="closeBottomSheet('modal-add-tab2-final')" class="btn btn-sm btn-circle btn-ghost text-slate-400 font-bold">✕</button>
+    </div>
+    
+    <input type="hidden" id="t2-final-depid">
+    <input type="hidden" id="t2-final-expected-paid">
+
+    <div class="space-y-3">
+      <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+        <span id="t2-final-info-label" class="text-xs font-black text-slate-700 block">บิล: - | จ่ายเพิ่มหน้างาน: ฿0</span>
+      </div>
+
+      <div>
+        <label class="text-xs font-black text-slate-700 block mb-1">เลือกสมาชิกคนที่จ่ายเงินสดหน้างานจริง:</label>
+        <select id="t2-final-payer-select" class="select select-bordered select-sm w-full font-bold text-slate-800 bg-white"></select>
+      </div>
+
+      <div>
+        <label class="text-xs font-black text-slate-700 block mb-1">ยอดเงินสดที่จ่ายจริงหน้างาน (บาท):</label>
+        <input type="number" id="t2-final-paid-input" min="0" class="input input-bordered input-sm w-full font-black text-slate-800 text-right">
+      </div>
+
+      <div class="pt-3">
+        <button type="button" onclick="submitTab2FinalPayment()" class="btn btn-primary w-full text-white font-black rounded-xl shadow-lg">บันทึกผลจ่ายเงินสดหน้างาน ✅</button>
+      </div>
+    </div>
+  </div>
+</div>
 
   <!-- JAVASCRIPT CORE ENGINE -->
   <script>
@@ -749,10 +780,16 @@
 
           (data.tab2Deposits || []).forEach(dep => {
             let detailsArr = parseIfNeeded(dep.details);
+            let fullCost = parseFloat(dep.fullCost) || 0;
+            
+            // นับจำนวนคนที่ติ๊ก joint/target จริงๆ ในบิลนั้น (ป้องกันค่าเป็น 0 หรือ undefined)
+            let actualTargetsCount = detailsArr.filter(d => d.isTarget).length || detailsArr.length || 1;
+            let sharePerHead = fullCost / actualTargetsCount;
+
             detailsArr.forEach(d => {
               let mId = getMemberIdFromSplit(d);
-              if (mId === m.id) {
-                let shareAmt = d.expectedShare > 0 ? d.expectedShare : (d.isTarget ? ((parseFloat(dep.fullCost) || 0) / (dep.targetCount || 1)) : 0);
+              if (mId === m.id && d.isTarget) {
+                let shareAmt = d.expectedShare > 0 ? d.expectedShare : sharePerHead;
                 personTotalExpense += parseFloat(shareAmt) || 0;
               }
             });
@@ -1183,6 +1220,84 @@
           if(row) row.remove();
           callAPI(WEB_APP_URL, 'POST', { action: "deleteDepositFull", depId: depId }).then(() => {
             if(globalTripData) {
+              globalTripData.tab2Deposits = globalTripData.tab2Deposits.filter(x => x.depId !== depId);
+              globalTripData.tab3Settlements = globalTripData.tab3Settlements.filter(x => x.depId !== depId);
+              reCalculateAndRenderFinancialViews();
+            }
+            silentSyncFinancialData();
+          });
+        }
+      });
+    }
+
+    // ฟังก์ชันเปิด Modal อัพเดทจ่ายเงินงวดสุดท้ายของ Tab 2
+    function openFinalPaymentManager(depId, note, fullCost, totalDeposit) {
+      if (window.event) window.event.stopPropagation();
+      document.getElementById("t2-final-depid").value = depId;
+      const expectedPaid = Math.max(0, fullCost - totalDeposit);
+      document.getElementById("t2-final-expected-paid").value = expectedPaid;
+      document.getElementById("t2-final-paid-input").value = expectedPaid;
+      document.getElementById("t2-final-info-label").innerText = `บิล: ${note} | จ่ายเพิ่มหน้างาน: ฿${expectedPaid.toLocaleString(undefined, {minimumFractionDigits:2})}`;
+      
+      const select = document.getElementById("t2-final-payer-select"); 
+      if (select && globalTripData) {
+        select.innerHTML = "";
+        globalTripData.members.forEach(m => { 
+          select.innerHTML += `<option value="${m.id}">${m.icon || '👤'} ${m.name}</option>`; 
+        });
+      }
+      openBottomSheet("modal-add-tab2-final");
+    }
+
+    // ฟังก์ชันกดส่งข้อมูลอัพเดทจ่ายเงินงวดสุดท้ายเพื่อเปลี่ยนสถานะเป็น Ready_To_Settle
+    function submitTab2FinalPayment() {
+      const depId = document.getElementById("t2-final-depid").value;
+      const payerId = document.getElementById("t2-final-payer-select").value;
+      const paidInput = parseFloat(document.getElementById("t2-final-paid-input").value) || 0;
+      
+      closeBottomSheet("modal-add-tab2-final");
+      
+      const btn = document.getElementById(`btn-final-t2-${depId}`);
+      if (btn) { btn.innerText = "⏳ กำลังบันทึก..."; btn.disabled = true; }
+      
+      callAPI(WEB_APP_URL, 'POST', { 
+        action: "updateDepositFinalPayment", 
+        depId: depId, 
+        finalPaid: paidInput, 
+        finalPayerId: payerId 
+      }).then((res) => { 
+        if (res && res.success) {
+          activeCurrentFinTabIdx = 3; // สลับไปหน้า Tab 3 อัตโนมัติหลังบันทึกเสร็จ
+          silentSyncFinancialData(); 
+        } else {
+          Swal.fire("ล้มเหลว", res.error || "ไม่สามารถอัพเดทข้อมูลได้", "error");
+        }
+      });
+    }
+
+    // ฟังก์ชันลบบิลมัดจำใน Tab 2
+    function deleteTab2Bill(depId) {
+      if (window.event) window.event.stopPropagation();
+      Swal.fire({
+        title: 'ยืนยันลบโครงการมัดจำ?',
+        text: "รายการมัดจำและข้อมูลการโอนทั้งหมดจะถูกลบทิ้งถาวร!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'ใช่, ลบทันที!',
+        cancelButtonText: 'ยกเลิก',
+        customClass: {
+          confirmButton: 'btn bg-red-500 text-white font-black px-4 mx-1 border-0',
+          cancelButton: 'btn bg-slate-400 text-white font-black px-4 mx-1 border-0'
+        },
+        buttonsStyling: false
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const row = document.getElementById(`tab2-row-${depId}`);
+          if (row) row.remove();
+          callAPI(WEB_APP_URL, 'POST', { action: "deleteDepositFull", depId: depId }).then(() => {
+            if (globalTripData) {
               globalTripData.tab2Deposits = globalTripData.tab2Deposits.filter(x => x.depId !== depId);
               globalTripData.tab3Settlements = globalTripData.tab3Settlements.filter(x => x.depId !== depId);
               reCalculateAndRenderFinancialViews();
