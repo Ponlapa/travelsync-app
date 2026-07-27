@@ -56,23 +56,52 @@
       height: calc(100% - 65px) !important; overflow: hidden !important; 
       padding: 16px; box-sizing: border-box;
     }
-    .tabs-boxed .tab-active { background-color: #570df8 !important; color: #ffffff !important; }
+    
+    /* 🎨 OVERRIDE PALETTE THEME (Cyan, Purple, Pink, Yellow) */
+    :root {
+      --color-cyan: #00E0BA;
+      --color-purple: #91008D;
+      --color-pink: #FF3483;
+      --color-yellow: #FFCF00;
+    }
+
+    /* ปุ่ม Primary และ Tab Active เปลี่ยนเป็นสี Cyan (#00E0BA) */
+    .btn-primary, 
+    .tabs-boxed .tab-active { 
+      background-color: #00E0BA !important; 
+      border-color: #00E0BA !important; 
+      color: #ffffff !important; 
+    }
+
+    /* ปุ่ม Secondary เปลี่ยนเป็นสี Purple (#91008D) */
+    .btn-secondary { 
+      background-color: #91008D !important; 
+      border-color: #91008D !important; 
+      color: #ffffff !important; 
+    }
+
+    /* Override สี Icon/Text ชั่วคราว */
+    .text-primary, #app-bottom-navbar .text-primary { color: #00E0BA !important; }
+    .bg-primary { background-color: #00E0BA !important; }
+    .text-secondary { color: #91008D !important; }
+    .bg-secondary { background-color: #91008D !important; }
+
     .tab2-action-group {
       display: flex; justify-content: flex-end; align-items: center;
       gap: 8px; padding: 10px 14px; background-color: #f8fafc;
       border-top: 1px dashed #e2e8f0; margin-top: 8px;
     }
     #itinerary-day-tabs-bar {
-  display: flex; 
-  flex-wrap: nowrap !important; /* ✨ บังคับไม่ให้ปุ่มตกบรรทัด */
-  gap: 8px; 
-  overflow-x: scroll !important; /* ✨ เปิดเลื่อนซ้าย-ขวา */
-  -webkit-overflow-scrolling: touch; /* ✨ ช่วยให้ไถบน iOS ลื่นขึ้น */
-  padding-bottom: 8px; 
-  margin-bottom: 12px; 
-  width: 100%; 
-  scrollbar-width: none;
-}
+      display: flex; 
+      flex-wrap: nowrap !important; /* ✨ บังคับไม่ให้ปุ่มตกบรรทัด */
+      gap: 8px; 
+      overflow-x: scroll !important; /* ✨ เปิดเลื่อนซ้าย-ขวา */
+      -webkit-overflow-scrolling: touch; /* ✨ ช่วยให้ไถบน iOS ลื่นขึ้น */
+      padding-bottom: 8px; 
+      margin-bottom: 12px; 
+      width: 100%; 
+      scrollbar-width: none;
+    }
     #itinerary-day-tabs-bar::-webkit-scrollbar { display: none; }
   </style>
 </head>
@@ -159,10 +188,10 @@
 
         <!-- SUB VIEW: EXPENSES -->
         <div id="sub-view-expenses" class="space-y-3 hidden">
-          <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-3.5 rounded-2xl text-center shadow-md shrink-0">
-            <div class="text-[10px] font-medium opacity-70 uppercase tracking-wider">ยอดรวมค่าใช้จ่ายทั้งทริป</div>
-            <div id="cost-total-display" class="text-2xl font-black mt-0.5 text-yellow-400">฿0.00 บาท</div>
-          </div>
+          <div class="text-white p-3.5 rounded-2xl text-center shadow-md shrink-0" style="background: linear-gradient(135deg, #91008D 0%, #60005d 100%);">
+  <div class="text-[10px] font-bold opacity-90 uppercase tracking-wider text-white">ยอดรวมค่าใช้จ่ายทั้งทริป</div>
+  <div id="cost-total-display" class="text-2xl font-black mt-0.5" style="color: #FFCF00 !important;">฿0.00 บาท</div>
+</div>
           
           <div class="tabs tabs-boxed bg-slate-100 p-1 flex h-11 shrink-0">
             <button id="tab-btn-1" onclick="switchFinTab(1)" class="tab tab-active flex-1 text-[11px] font-black rounded-lg px-1 truncate">ค่าใช้จ่ายใหม่</button>
@@ -479,7 +508,7 @@
         itiContainer.innerHTML += `
           <div class="relative mb-3">
             <span class="absolute -left-[21px] top-1.5 bg-primary w-2 h-2 rounded-full"></span>
-            <div class="text-xs font-black text-black bg-rose-200 border border-rose-300 px-2.5 py-0.5 rounded-md inline-block mb-1 shadow-3xs">⏰ เวลา ${item.time} น.</div>
+            <div class="text-xs font-black text-white bg-pink px-2.5 py-0.5 rounded-md inline-block mb-1 shadow-3xs" style="background-color: #FF3483 !important;">⏰ เวลา ${item.time} น.</div>
             <div class="bg-slate-50 border-2 border-slate-200 p-3 rounded-2xl flex justify-between items-center shadow-3xs relative">
               <div class="min-w-0 flex-1 pr-2">
                 <div class="font-black text-base text-slate-800 truncate">${item.activity}</div>
