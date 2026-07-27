@@ -144,7 +144,7 @@
         <div id="sub-view-itinerary" class="hidden">
           <div class="flex justify-between items-center mb-1 shrink-0">
             <h3 class="text-sm font-black text-slate-800 flex items-center gap-1.5"><i class="fa-solid fa-map-location-dot text-slate-400"></i> แผนกิจกรรมทริป</h3>
-            <button onclick="openBottomSheet('modal-add-itinerary')" class="btn btn-xs btn-primary font-bold px-2 rounded-lg h-6 min-h-0 text-[10px]">+ เพิ่มแผน</button>
+            <button onclick="openAddItineraryModal()" class="btn btn-xs btn-primary font-bold px-2 rounded-lg h-6 min-h-0 text-[10px]">+ เพิ่มแผน</button>
           </div>
           <div id="itinerary-day-tabs-bar" class="shrink-0"></div>
           <div id="itinerary-timeline" class="relative border-l-2 border-slate-200 pl-4 ml-2 mt-4 space-y-4"></div>
@@ -236,6 +236,7 @@
     <div onclick="event.stopPropagation()" class="bg-white w-full max-w-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
       <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
       <h3 class="text-base font-black text-slate-800">📌 เพิ่มกิจกรรมลงบนแผนการเดินทาง</h3>
+      <input type="hidden" id="iti-edit-id" value="">
       <div class="space-y-3">
         <div class="grid grid-cols-2 gap-2">
           <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ระบุวันที่</span></label><input type="date" id="iti-date" class="input input-bordered w-full bg-slate-50 font-bold text-xs px-2"></div>
@@ -244,7 +245,7 @@
         <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ชื่อกิจกรรม/สถานที่ท่องเที่ยว</span></label><input type="text" id="iti-act" placeholder="เช็คอินโรงแรม" class="input input-bordered w-full bg-slate-50 font-bold"></div>
         <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ชื่อสถานที่/ร้านค้า</span></label><input type="text" id="iti-loc" placeholder="โรงแรมเซ็นทรัล" class="input input-bordered w-full bg-slate-50 font-bold"></div>
         <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ลิงก์แผนที่ Google Maps</span></label><input type="url" id="iti-map" placeholder="http://maps.google.com/..." class="input input-bordered w-full bg-slate-50 font-bold text-xs"></div>
-        <button onclick="handleRegisterItinerary()" class="btn btn-primary w-full font-black text-white rounded-xl mt-2 h-11 min-h-0">บันทึกลงปฏิทินทริป ⏰</button>
+        <button id="iti-submit-btn" onclick="handleRegisterItinerary()" class="btn btn-primary w-full font-black text-white rounded-xl mt-2 h-11 min-h-0">บันทึกลงปฏิทินทริป ⏰</button>
       </div>
     </div>
   </div>
@@ -387,23 +388,18 @@
     }
 
     function enterTripDashboard(tripId) {
-      const isSameTrip = (currentTripId === tripId);
       currentTripId = tripId;
 
-      if (isSameTrip && globalTripData) {
+      // บังคับดึงข้อมูลใหม่สดๆ จาก Backend ทุกครั้งที่กดเข้ามา
+      Swal.fire({ title: 'กำลังโหลดข้อมูลทริป...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+      callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${tripId}`).then(data => {
+        Swal.close();
+        if(!data || !data.success) return;
+
+        globalTripData = data; 
         renderFullDashboardUI();
         switchToView("view-dashboard");
-      } else {
-        Swal.fire({ title: 'กำลังโหลดข้อมูลทริป...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-        callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${tripId}`).then(data => {
-          Swal.close();
-          if(!data || !data.success) return;
-
-          globalTripData = data; 
-          renderFullDashboardUI();
-          switchToView("view-dashboard");
-        });
-      }
+      });
     }
 
     function renderFullDashboardUI() {
@@ -466,17 +462,25 @@
       } 
       
       filtered.sort((a, b) => (a.time || "").localeCompare(b.time || "")).forEach(item => { 
-        const map = item.mapUrl ? `<a href="${item.mapUrl}" target="_blank" class="btn btn-sm btn-circle btn-info text-white shadow-md ml-2 flex items-center justify-center w-8 h-8" style="background-color:#0284c7 !important; border:0;"><i class="fa-solid fa-location-dot text-xs"></i></a>` : ""; 
+        const map = item.mapUrl ? `<a href="${item.mapUrl}" target="_blank" class="btn btn-sm btn-circle btn-info text-white shadow-md flex items-center justify-center w-7 h-7" style="background-color:#0284c7 !important; border:0;"><i class="fa-solid fa-location-dot text-xs"></i></a>` : ""; 
+        
+        const safeAct = (item.activity || "").replace(/'/g, "\\'");
+        const safeLoc = (item.location || "").replace(/'/g, "\\'");
+        const safeMap = (item.mapUrl || "").replace(/'/g, "\\'");
+
         itiContainer.innerHTML += `
           <div class="relative mb-3">
             <span class="absolute -left-[21px] top-1.5 bg-primary w-2 h-2 rounded-full"></span>
             <div class="text-xs font-black text-black bg-rose-200 border border-rose-300 px-2.5 py-0.5 rounded-md inline-block mb-1 shadow-3xs">⏰ เวลา ${item.time} น.</div>
-            <div class="bg-slate-50 border-2 border-slate-200 p-3 rounded-2xl flex justify-between items-center shadow-3xs">
-              <div class="min-w-0 flex-1">
+            <div class="bg-slate-50 border-2 border-slate-200 p-3 rounded-2xl flex justify-between items-center shadow-3xs relative">
+              <div class="min-w-0 flex-1 pr-2">
                 <div class="font-black text-base text-slate-800 truncate">${item.activity}</div>
                 <div class="text-xs text-slate-400 font-bold truncate mt-0.5"><i class="fa-solid fa-map-pin mr-1 text-slate-300"></i>${item.location || 'ไม่ได้ระบุสถานที่'}</div>
               </div>
-              <div class="shrink-0">${map}</div>
+              <div class="shrink-0 flex items-center gap-1.5">
+                ${map}
+                <button onclick="openEditItineraryModal('${item.id}', '${item.date}', '${item.time}', '${safeAct}', '${safeLoc}', '${safeMap}')" class="btn btn-sm btn-circle btn-ghost text-slate-400 hover:text-amber-600 hover:bg-amber-50 w-7 h-7 min-h-0 flex items-center justify-center"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+              </div>
             </div>
           </div>`; 
       }); 
@@ -659,18 +663,77 @@
       callAPI(WEB_APP_URL, 'POST', { action: "createTrip", title: title, desc: desc, hostId: currentUser.id }).then(() => { renderTripsList(); });
     }
 
+   function openAddItineraryModal() {
+      document.getElementById("iti-edit-id").value = "";
+      document.getElementById("iti-modal-title").innerText = "📌 เพิ่มกิจกรรมลงบนแผนการเดินทาง";
+      document.getElementById("iti-submit-btn").innerText = "บันทึกลงปฏิทินทริป ⏰";
+      
+      if (activeSelectedDayDate) document.getElementById("iti-date").value = activeSelectedDayDate;
+      document.getElementById("iti-time").value = "12:00";
+      document.getElementById("iti-act").value = "";
+      document.getElementById("iti-loc").value = "";
+      document.getElementById("iti-map").value = "";
+      
+      openBottomSheet('modal-add-itinerary');
+    }
+
+    function openEditItineraryModal(id, date, time, act, loc, map) {
+      if(window.event) window.event.stopPropagation();
+      
+      document.getElementById("iti-edit-id").value = id;
+      document.getElementById("iti-modal-title").innerText = "✏️ แก้ไขแผนการเดินทาง";
+      document.getElementById("iti-submit-btn").innerText = "บันทึกการแก้ไข 💾";
+      
+      document.getElementById("iti-date").value = date;
+      document.getElementById("iti-time").value = time;
+      document.getElementById("iti-act").value = act;
+      document.getElementById("iti-loc").value = loc;
+      document.getElementById("iti-map").value = map;
+      
+      openBottomSheet('modal-add-itinerary');
+    }
+
     function handleRegisterItinerary() { 
-      const date = document.getElementById("iti-date").value, time = document.getElementById("iti-time").value, act = document.getElementById("iti-act").value.trim(), loc = document.getElementById("iti-loc").value.trim(), map = document.getElementById("iti-map").value.trim(); 
-      if(!date || !time || !act || !loc) return;
-      callAPI(WEB_APP_URL, 'POST', { action: "addItinerary", tripId: currentTripId, date: date, time: time, activity: act, location: loc, mapUrl: map }).then(res => {
+      const editId = document.getElementById("iti-edit-id").value;
+      const date = document.getElementById("iti-date").value;
+      const time = document.getElementById("iti-time").value;
+      const act = document.getElementById("iti-act").value.trim();
+      const loc = document.getElementById("iti-loc").value.trim();
+      const map = document.getElementById("iti-map").value.trim(); 
+      
+      if(!date || !time || !act || !loc) return Swal.fire("แจ้งเตือน", "กรุณากรอกข้อมูลให้ครบถ้วน", "warning");
+
+      const actionType = editId ? "updateItinerary" : "addItinerary";
+      const payload = { 
+        action: actionType, 
+        tripId: currentTripId, 
+        date: date, 
+        time: time, 
+        activity: act, 
+        location: loc, 
+        mapUrl: map 
+      };
+      if (editId) payload.id = editId;
+
+      const btn = document.getElementById("iti-submit-btn");
+      btn.innerText = "⏳ กำลังบันทึก...";
+      btn.disabled = true;
+
+      callAPI(WEB_APP_URL, 'POST', payload).then(res => {
+        btn.disabled = false;
         if(res.success) { 
           closeBottomSheet("modal-add-itinerary"); 
           activeSelectedDayDate = date; 
-          if(globalTripData) {
-            globalTripData.itinerary.push({ id: "I_TEMP_" + Date.now(), date: date, time: time, activity: act, location: loc, mapUrl: map });
-            renderFullDashboardUI();
-          }
+          
           silentSyncFinancialData();
+          callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${currentTripId}`).then(data => {
+            if(data && data.success) {
+              globalTripData = data;
+              renderFullDashboardUI();
+            }
+          });
+        } else {
+          Swal.fire("ล้มเหลว", res.error || "ไม่สามารถบันทึกข้อมูลได้", "error");
         }
       });
     }
