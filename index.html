@@ -564,21 +564,16 @@
         return data || [];
       };
 
-      // Helper สำหรับแปลง ID เป็นชื่อสมาชิก + Icon
       const getMemberName = (mId) => {
         const found = (data.members || []).find(m => m.id === mId);
         return found ? `${found.icon || '👤'} ${found.name}` : (mId || 'สมาชิก');
       };
 
-      // Helper สำหรับดึง ID สมาชิกแบบยืดหยุ่น (รองรับทั้ง String และ Object)
       const getMemberIdFromSplit = (item) => {
         if (typeof item === 'string') return item;
         return item ? (item.userId || item.id || item.memberId || item.user_id) : null;
       };
 
-      // ------------------------------------------
-      // 1. คำนวณ Net Balance สะสม
-      // ------------------------------------------
       const summaryMap = (data.members || []).reduce((acc, curr) => { acc[curr.id] = 0; return acc; }, {});
 
       (data.tab1Expenses || []).forEach(exp => {
@@ -597,9 +592,7 @@
       let safeTotalCost = (data.tab1Expenses || []).reduce((acc, curr) => acc + (parseFloat(curr.totalAmount) || 0), 0);
       document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined, {minimumFractionDigits:2})} บาท`;
 
-      // ==========================================
-      // TAB 1: ประวัติบิลทั่วไป (พร้อมปุ่ม Show/Hide)
-      // ==========================================
+      // TAB 1
       const t1Container = document.getElementById("tab1-list-container"); 
       if (t1Container) {
         t1Container.innerHTML = "";
@@ -637,28 +630,20 @@
                     <div class="font-black text-slate-700 mt-1 text-sm">ยอดเงินสด: ฿${totalAmt.toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
                   </div>
                   <div class="flex items-center gap-1.5 shrink-0">
-                    <button type="button" 
-                            onclick="const col = document.getElementById('tab1-col-${h.billId}'); const isHidden = col.classList.contains('hidden'); col.classList.toggle('hidden'); this.innerText = isHidden ? 'Hide 🔼' : 'Show 🔽';" 
-                            class="btn btn-xs bg-slate-200 border-0 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-[10px] px-2 min-h-0 h-6">
-                      Show 🔽
-                    </button>
+                    <button type="button" onclick="const col = document.getElementById('tab1-col-${h.billId}'); const isHidden = col.classList.contains('hidden'); col.classList.toggle('hidden'); this.innerText = isHidden ? 'Hide 🔼' : 'Show 🔽';" class="btn btn-xs bg-slate-200 border-0 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-[10px] px-2 min-h-0 h-6">Show 🔽</button>
                     <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-xs btn-circle btn-error text-white border-0 bg-red-500 w-6 h-6 min-h-0 flex items-center justify-center"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
                   </div>
                 </div>
                 <div id="tab1-col-${h.billId}" class="hidden bg-white border-t border-slate-100 p-3 space-y-1.5">
                   ${splitsHtml}
-                  <div class="pt-2 border-t border-slate-100 flex justify-end">
-                    ${actionBtn}
-                  </div>
+                  <div class="pt-2 border-t border-slate-100 flex justify-end">${actionBtn}</div>
                 </div>
               </div>`;
           });
         }
       }
 
-      // ==========================================
-      // TAB 2: ประวัติบิลมัดจำ (พร้อมปุ่ม Show/Hide)
-      // ==========================================
+      // TAB 2
       const t2Container = document.getElementById("tab2-list-container"); 
       if (t2Container) {
         t2Container.innerHTML = "";
@@ -688,28 +673,20 @@
                     <span class="text-[10px] font-bold text-slate-500 block mt-1">วันจริงจ่ายเพิ่ม: <b class="text-slate-700">฿${displayPaidAmt.toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
                   </div>
                   <div class="flex items-center gap-1.5 shrink-0">
-                    <button type="button" 
-                            onclick="const col = document.getElementById('tab2-col-${h.depId}'); const isHidden = col.classList.contains('hidden'); col.classList.toggle('hidden'); this.innerText = isHidden ? 'Hide 🔼' : 'Show 🔽';" 
-                            class="btn btn-xs bg-slate-200 border-0 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-[10px] px-2 min-h-0 h-6">
-                      Show 🔽
-                    </button>
+                    <button type="button" onclick="const col = document.getElementById('tab2-col-${h.depId}'); const isHidden = col.classList.contains('hidden'); col.classList.toggle('hidden'); this.innerText = isHidden ? 'Hide 🔼' : 'Show 🔽';" class="btn btn-xs bg-slate-200 border-0 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-[10px] px-2 min-h-0 h-6">Show 🔽</button>
                     <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-xs btn-circle btn-error text-white border-0 bg-red-500 w-6 h-6 min-h-0 flex items-center justify-center"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
                   </div>
                 </div>
                 <div id="tab2-col-${h.depId}" class="hidden bg-white border-t border-slate-100 p-3 space-y-1.5">
                   ${detailsHtml}
-                  <div class="pt-2 border-t border-slate-100 flex justify-end">
-                    ${actionBtn}
-                  </div>
+                  <div class="pt-2 border-t border-slate-100 flex justify-end">${actionBtn}</div>
                 </div>
               </div>`;
           });
         }
       }
 
-      // ==========================================
-      // TAB 3: ยอดการจัดการเงิน (สรุปแยกรายคน)
-      // ==========================================
+      // TAB 3
       const t3Container = document.getElementById("tab3-list-container"); 
       if (t3Container) {
         t3Container.innerHTML = "";
@@ -717,7 +694,6 @@
 
         (data.members || []).forEach(m => {
           let listRowsHtml = "";
-
           (data.tab3Settlements || []).forEach(s => {
             (s.instructions || []).forEach(ins => {
               let fId = ins.fromId || ins.from_id;
@@ -742,28 +718,22 @@
               <div class="font-black text-xs text-slate-800 border-b pb-2 mb-1 flex items-center gap-1.5">
                 <span>${m.icon || '👤'} ${m.name}</span>
               </div>
-              <div class="flex flex-col gap-0.5">
-                ${listRowsHtml}
-              </div>
+              <div class="flex flex-col gap-0.5">${listRowsHtml}</div>
             </div>`;
         });
 
         t3Container.innerHTML = summaryHtml;
       }
 
-      // ==========================================
-      // TAB 4: สรุปภาระค่าใช้จ่ายสะสมรวมรายคน
-      // ==========================================
+      // TAB 4
       const t4Container = document.getElementById("tab4-list-container"); 
       if (t4Container) {
         t4Container.innerHTML = "";
-
         (data.members || []).forEach(m => {
           let personTotalExpense = 0;
 
-          // คำนวณจาก Tab 1
           (data.tab1Expenses || []).forEach(exp => {
-            let splitsArr = parseIfNeeded(exp.splits); // 👈 แปลงข้อมูล String เป็น Array
+            let splitsArr = parseIfNeeded(exp.splits);
             let totalAmt = parseFloat(exp.totalAmount) || 0;
             let splitsCount = splitsArr.length || 1;
             let defaultShare = totalAmt / splitsCount;
@@ -777,9 +747,8 @@
             });
           });
 
-          // คำนวณจาก Tab 2
           (data.tab2Deposits || []).forEach(dep => {
-            let detailsArr = parseIfNeeded(dep.details); // 👈 แปลงข้อมูล String เป็น Array
+            let detailsArr = parseIfNeeded(dep.details);
             detailsArr.forEach(d => {
               let mId = getMemberIdFromSplit(d);
               if (mId === m.id) {
@@ -796,6 +765,8 @@
             </div>`;
         });
       }
+    } // 👈 ปิดวงเล็บปีกกาของฟังก์ชัน reCalculateAndRenderFinancialViews ให้ครบถ้วนตรงนี้
+
     function silentSyncFinancialData() {
       if (!currentTripId) return;
       callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${currentTripId}`).then(freshData => {
@@ -1083,7 +1054,7 @@
       const chks = document.getElementsByName("chk-t1-user");
       const splitArray = []; 
       for (let i = 0; i < chks.length; i++) { 
-        if (chks[i].checked) splitArray.push(chks[i].value); // ส่ง 'U001', 'U002' ตรงๆ
+        if (chks[i].checked) splitArray.push(chks[i].value); 
       }
 
       closeBottomSheet("modal-add-tab1");
