@@ -287,23 +287,54 @@
   </div>
 
   <div id="modal-add-tab1" onclick="closeBottomSheet('modal-add-tab1')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
-    <div onclick="event.stopPropagation()" class="bg-white w-full max-w-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl max-h-[85%] overflow-y-auto">
-      <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
-      <h3 class="text-base font-black text-slate-800">💰 ลงบันทึกค่าใช้จ่ายทั่วไป (รายบิล)</h3>
-      <div class="space-y-3">
-        <div class="grid grid-cols-2 gap-2">
-          <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ยอดเงินสดรวม (บาท)</span></label><input type="number" id="t1-amount" placeholder="250" class="input input-bordered w-full bg-slate-50 font-black text-slate-800 text-lg text-right"></div>
-          <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">หมวดหมู่</span></label><select id="t1-cat" class="select select-bordered w-full bg-slate-50 font-bold"><option value="🍱 อาหารและเครื่องดื่ม">🍱 อาหาร</option><option value="🚗 ค่าน้ำมัน/เดินทาง">🚗 การเดินทาง</option><option value="🏨 ค่าที่พัก/โรงแรม">🏨 ที่พัก</option><option value="🎟️ บัตรผ่าน/ตั๋วเที่ยว">🎟️ บัตรผ่านล่วงหน้า</option><option value="🛍️ ช้อปปิ้ง/ของฝาก">🛍️ ช้อปปิ้ง</option></select></div>
-        </div>
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ชื่อรายการ/หมายเหตุบิล</span></label><input type="text" id="t1-note" placeholder="ค่าข้าวเที่ยงวันแรก" class="input input-bordered w-full bg-slate-50 font-bold"></div>
+  <div onclick="event.stopPropagation()" class="bg-white w-full max-w-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl max-h-[85%] overflow-y-auto">
+    <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
+    <h3 class="text-base font-black text-slate-800">💰 ลงบันทึกค่าใช้จ่ายทั่วไป (รายบิล)</h3>
+    <div class="space-y-3">
+      <div class="grid grid-cols-2 gap-2">
         <div class="form-control">
-          <label class="label"><span class="label-text text-xs font-black text-primary">🎯 ติ๊กเลือกสมาชิกที่ร่วมหารบิลเดี่ยวนี้:</span></label>
-          <div id="t1-members-checkbox-zone" class="space-y-1.5 max-h-[150px] overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-100"></div>
+          <label class="label"><span class="label-text text-xs font-bold">ยอดเงินสดรวม (บาท)</span></label>
+          <input type="number" id="t1-amount" oninput="if(t1IsCustomMode) recalculateT1CustomAmounts(); else calculateT1EqualSplit();" placeholder="250" class="input input-bordered w-full bg-slate-50 font-black text-slate-800 text-lg text-right">
         </div>
-        <button onclick="submitTab1Expense()" class="btn btn-primary w-full font-black text-white rounded-xl mt-2 h-11 min-h-0">ลงบันทึกบิลทันที 🧾</button>
+        <div class="form-control">
+          <label class="label"><span class="label-text text-xs font-bold">หมวดหมู่</span></label>
+          <select id="t1-cat" class="select select-bordered w-full bg-slate-50 font-bold">
+            <option value="🍱 อาหารและเครื่องดื่ม">🍱 อาหาร</option>
+            <option value="🚗 ค่าน้ำมัน/เดินทาง">🚗 การเดินทาง</option>
+            <option value="🏨 ค่าที่พัก/โรงแรม">🏨 ที่พัก</option>
+            <option value="🎟️ บัตรผ่าน/ตั๋วเที่ยว">🎟️ บัตรผ่านล่วงหน้า</option>
+            <option value="🛍️ ช้อปปิ้ง/ของฝาก">🛍️ ช้อปปิ้ง</option>
+          </select>
+        </div>
       </div>
+      <div class="form-control">
+        <label class="label"><span class="label-text text-xs font-bold">ชื่อรายการ/หมายเหตุบิล</span></label>
+        <input type="text" id="t1-note" placeholder="ค่าข้าวเที่ยงวันแรก" class="input input-bordered w-full bg-slate-50 font-bold">
+      </div>
+
+      <!-- ✨ จุดที่ปรับแก้: เพิ่ม สวิตช์เลือกโหมด + แถบเช็คยอดเงิน -->
+      <div class="form-control">
+        <div class="flex justify-between items-center mb-1">
+          <label class="label p-0"><span class="label-text text-xs font-black text-primary">🎯 ติ๊กเลือกสมาชิกที่ร่วมหาร:</span></label>
+          <div class="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded-lg">
+            <span class="text-[10px] font-bold text-slate-600">หารเท่า</span>
+            <input type="checkbox" id="t1-custom-split-toggle" onchange="toggleT1SplitMode()" class="toggle toggle-xs toggle-primary">
+            <span class="text-[10px] font-bold text-slate-600">คีย์ตามจริง</span>
+          </div>
+        </div>
+
+        <!-- แถบเตือนเช็คยอดคงเหลือ (จะซ่อนไว้ก่อน เปิดเฉพาะตอนเลือกคีย์ตามจริง) -->
+        <div id="t1-balance-alert" class="p-2.5 my-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 hidden">
+          💡 ยอดรวม: <span id="t1-lbl-total">0</span> | ระบุแล้ว: <span id="t1-lbl-used">0</span> | <b id="t1-lbl-status">ขาดอีก 0 บาท</b>
+        </div>
+
+        <div id="t1-members-checkbox-zone" class="space-y-1.5 max-h-[180px] overflow-y-auto p-1 bg-slate-50 rounded-xl border border-slate-100"></div>
+      </div>
+
+      <button onclick="submitTab1Expense()" class="btn btn-primary w-full font-black text-white rounded-xl mt-2 h-11 min-h-0">ลงบันทึกบิลทันที 🧾</button>
     </div>
   </div>
+</div>
 
   <div id="modal-add-tab2-master" onclick="closeBottomSheet('modal-add-tab2-master')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
     <div onclick="event.stopPropagation()" class="bg-white w-full max-w-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl max-h-[85%] overflow-y-auto">
@@ -550,9 +581,18 @@
         } else {
           data.tab1Expenses.forEach((h) => {
             let splitsHtml = (h.splits || []).map(s => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${s.name} ➔ ภาระ: ฿${parseFloat(s.share).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
-            let actionBtn = h.status === "Pending" 
-              ? `<button id="btn-close-t1-${h.billId}" onclick="event.stopPropagation(); changeTab1BillStatus('${h.billId}', 'Closed')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px] px-2.5">ปิดยอด ✅</button>` 
-              : `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">จ่ายจบแล้ว</span>`;
+            const isPayer = (currentUser && currentUser.id === h.payerId);
+
+let actionBtn = "";
+if (h.status === "Pending") {
+  if (isPayer) {
+    actionBtn = `<button id="btn-close-t1-${h.billId}" onclick="confirmCloseTab1Bill('${h.billId}')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px] px-2.5">จ่ายเงินครบแล้ว ✅</button>`;
+  } else {
+    actionBtn = `<span class="badge badge-warning text-[9px] font-black p-2 h-6">รอคนจ่ายกดปิด</span>`;
+  }
+} else {
+  actionBtn = `<span class="badge badge-neutral text-[9px] font-black p-2 h-6">จ่ายจบแล้ว</span>`;
+}
             
             t1Container.innerHTML += `
               <div id="tab1-row-${h.billId}" class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
@@ -591,7 +631,7 @@
                   <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">ราคาเต็มบิล: ฿${parseFloat(h.fullCost).toLocaleString(undefined,{minimumFractionDigits:2})}</span>
                 </div>
                 <div class="tab2-action-group p-3 border-t border-slate-100 flex items-center">
-                  <span class="text-[10px] font-bold text-slate-500 mr-auto">วันจริงจ่ายเพิ่ม: <b id="t2-final-lbl-${h.depId}" class="text-slate-700">฿${parseFloat(h.finalPaid).toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
+                  <span class="text-[10px] font-bold text-slate-500 mr-auto">วันจริงจ่ายเพิ่ม: <b id="t2-final-lbl-${h.depId}" class="text-slate-700">฿${displayPaidAmt.toLocaleString(undefined,{minimumFractionDigits:2})}</b></span>
                   ${actionBtn}
                   <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-sm btn-circle btn-error text-white w-7 h-7 min-h-0 border-0 bg-red-500 flex items-center justify-center ml-2"><i class="fa-solid fa-trash-can text-xs"></i></button>
                 </div>
@@ -676,6 +716,139 @@
           t1Zone.innerHTML += `<label class="flex items-center gap-2.5 p-2 bg-white border border-slate-200 rounded-xl cursor-pointer text-xs font-bold text-slate-700"><input type="checkbox" name="chk-t1-user" value="${m.id}" checked class="checkbox checkbox-primary checkbox-sm rounded-md"><span>${m.icon || '👤'} ${m.name}</span></label>`;
         });
       }
+    }
+    let t1IsCustomMode = false;
+
+    // ปรับปรุง switchFinTab ให้รองรับการวาดรายชื่อพร้อมช่องกรอกยอดเงินรายคน
+    function switchFinTab(tabIdx) {
+      activeCurrentFinTabIdx = tabIdx;
+      for(let i=1; i<=4; i++) {
+        const btn = document.getElementById(`tab-btn-${i}`); 
+        const content = document.getElementById(`fin-content-${i}`);
+        if(i === tabIdx) {
+          if(btn) btn.className = "tab tab-active flex-1 text-[11px] font-black rounded-lg px-1 truncate";
+          if(content) content.classList.remove("hidden");
+        } else {
+          if(btn) btn.className = "tab flex-1 text-[11px] font-black rounded-lg px-1 truncate bg-transparent text-slate-500";
+          if(btn) btn.style = "background-color:transparent !important; color:#475569 !important;";
+          if(content) content.classList.add("hidden");
+        }
+      }
+
+      // วาดรายชื่อสมาชิกใน Modal Tab 1
+      const t1Zone = document.getElementById("t1-members-checkbox-zone");
+      if(t1Zone && tabIdx === 1 && globalTripData) {
+        t1Zone.innerHTML = "";
+        globalTripData.members.forEach(m => {
+          t1Zone.innerHTML += `
+            <div class="flex items-center justify-between p-2 bg-white border border-slate-200 rounded-xl gap-2">
+              <label class="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer min-w-0 flex-1 truncate">
+                <input type="checkbox" name="chk-t1-user" value="${m.id}" checked onchange="if(t1IsCustomMode) recalculateT1CustomAmounts(); else calculateT1EqualSplit();" class="checkbox checkbox-primary checkbox-sm rounded-md">
+                <span class="truncate">${m.icon || '👤'} ${m.name}</span>
+              </label>
+              <div class="flex items-center gap-1 shrink-0 w-28">
+                <input type="number" id="input-t1-amt-${m.id}" value="0" min="0" oninput="recalculateT1CustomAmounts()" class="input input-bordered input-xs w-full text-right font-bold text-slate-800 bg-slate-50" ${t1IsCustomMode ? '' : 'readonly'}>
+                <span class="text-[10px] text-slate-400 font-bold">บ.</span>
+              </div>
+            </div>`;
+        });
+        calculateT1EqualSplit();
+      }
+    }
+
+    // ✨ ฟังก์ชันข้อ 2.2: ควบคุมการสลับโหมดและคำนวณยอดเงิน Real-time
+    function toggleT1SplitMode() {
+      t1IsCustomMode = document.getElementById("t1-custom-split-toggle").checked;
+      const alertBox = document.getElementById("t1-balance-alert");
+      
+      // ปลดล็อค/ล็อค ช่องกรอกตัวเลขตามโหมด
+      const inputs = document.querySelectorAll("input[id^='input-t1-amt-']");
+      inputs.forEach(inp => {
+        if (t1IsCustomMode) {
+          inp.removeAttribute("readonly");
+          inp.classList.remove("bg-slate-50");
+          inp.classList.add("bg-white");
+        } else {
+          inp.setAttribute("readonly", "readonly");
+          inp.classList.remove("bg-white");
+          inp.classList.add("bg-slate-50");
+        }
+      });
+
+      if (t1IsCustomMode) {
+        if (alertBox) alertBox.classList.remove("hidden");
+        recalculateT1CustomAmounts();
+      } else {
+        if (alertBox) alertBox.classList.add("hidden");
+        calculateT1EqualSplit();
+      }
+    }
+
+    function calculateT1EqualSplit() {
+      const totalAmt = parseFloat(document.getElementById("t1-amount").value) || 0;
+      const chks = document.querySelectorAll("input[name='chk-t1-user']:checked");
+      if (chks.length === 0) return;
+      const sharePerPerson = (totalAmt / chks.length).toFixed(2);
+
+      const allInputs = document.querySelectorAll("input[id^='input-t1-amt-']");
+      allInputs.forEach(inp => inp.value = "0");
+
+      chks.forEach(chk => {
+        const inputEl = document.getElementById(`input-t1-amt-${chk.value}`);
+        if (inputEl) inputEl.value = sharePerPerson;
+      });
+    }
+
+    function recalculateT1CustomAmounts() {
+      if (!t1IsCustomMode) return;
+      const totalAmt = parseFloat(document.getElementById("t1-amount").value) || 0;
+      let sumUsed = 0;
+
+      const inputs = document.querySelectorAll("input[id^='input-t1-amt-']");
+      inputs.forEach(inp => {
+        const chk = document.querySelector(`input[name='chk-t1-user'][value='${inp.id.replace('input-t1-amt-', '')}']`);
+        if (chk && chk.checked) {
+          sumUsed += parseFloat(inp.value) || 0;
+        }
+      });
+
+      const remaining = totalAmt - sumUsed;
+      if (document.getElementById("t1-lbl-total")) document.getElementById("t1-lbl-total").innerText = totalAmt.toLocaleString();
+      if (document.getElementById("t1-lbl-used")) document.getElementById("t1-lbl-used").innerText = sumUsed.toLocaleString();
+
+      const statusLbl = document.getElementById("t1-lbl-status");
+      const alertBox = document.getElementById("t1-balance-alert");
+
+      if (statusLbl && alertBox) {
+        if (Math.abs(remaining) < 0.01) {
+          statusLbl.innerText = "ยอดเงินถูกต้องครบถ้วน ✅";
+          alertBox.className = "p-2.5 my-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200";
+        } else if (remaining > 0) {
+          statusLbl.innerText = `ขาดอีก ${remaining.toLocaleString()} บาท`;
+          alertBox.className = "p-2.5 my-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200";
+        } else {
+          statusLbl.innerText = `เกินอยู่ ${Math.abs(remaining).toLocaleString()} บาท`;
+          alertBox.className = "p-2.5 my-1.5 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200";
+        }
+      }
+    }
+    // ✨ ฟังก์ชัน Pop-up Confirm ก่อนปิดบิล (เฉพาะคนจ่ายเงิน)
+    function confirmCloseTab1Bill(billId) {
+      if (window.event) window.event.stopPropagation();
+      Swal.fire({
+        title: 'ยืนยันปิดยอดบิล?',
+        text: "คุณได้รับเงินโอนจากสมาชิกครบถ้วนแล้วใช่หรือไม่?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#00E0BA',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'ใช่, จ่ายครบแล้ว!',
+        cancelButtonText: 'ยกเลิก'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          changeTab1BillStatus(billId, 'Closed');
+        }
+      });
     }
 
     function buildTab2DynamicMembersForm() {
