@@ -645,52 +645,71 @@
       const t3Container = document.getElementById("tab3-list-container"); 
       if(t3Container) {
         t3Container.innerHTML = "";
+        
+        // 1. วาดส่วนยอดเงินสุทธิสะสมแยกรายคน
+        let netSummaryHtml = `<div class="mb-2"><span class="text-[10px] text-slate-400 font-bold">ยอดเงินสุทธิสะสมแยกรายคน (Real-time)</span></div><div class="space-y-1.5 mb-4">`;
+        (data.members || []).forEach(m => {
+          let netAmt = summaryMap[m.id] || 0;
+          let colorClass = netAmt >= 0 ? "text-emerald-600" : "text-rose-600";
+          let prefixStr = netAmt >= 0 ? "สุทธิ (ได้คืน): +" : "สุทธิ (ต้องจ่าย): ";
+          netSummaryHtml += `
+            <div class="flex justify-between items-center p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+              <span>${m.icon || '👤'} ${m.name}</span>
+              <span class="${colorClass} font-black">${prefixStr}฿${Math.abs(netAmt).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</span>
+            </div>`;
+        });
+        netSummaryHtml += `</div><div class="mb-2"><span class="text-[10px] text-slate-400 font-bold">รายการจับคู่โอนเงินเพื่อเฉลี่ยเงินมัดจำล่วงหน้า</span></div>`;
+        
+        // 2. วาดรายการจับคู่โอน
+        let settlementsHtml = "";
         if(!data.tab3Settlements || data.tab3Settlements.length === 0) { 
-          t3Container.innerHTML = `<div class="text-center py-4 text-xs font-bold bg-slate-50 rounded-xl border border-dashed">ไม่มีคิวจับคู่โอนเคลียร์หนี้เงินมัดจำ</div>`; 
+          settlementsHtml = `<div class="text-center py-4 text-xs font-bold bg-slate-50 rounded-xl border border-dashed">ไม่มีคิวจับคู่โอนเคลียร์หนี้เงินมัดจำ</div>`; 
         } else {
           data.tab3Settlements.forEach(s => {
             let rowHtml = (s.instructions || []).map(ins => `<div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-100 font-bold"><span>${ins.fromName} โอนให้ ➔ <b>${ins.toName}</b></span><span class="text-primary font-black">฿${parseFloat(ins.amount).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</span></div>`).join("");
-            t3Container.innerHTML += `
-              <div id="tab3-card-${s.depId}" class="card bg-white border-2 border-slate-200 p-4 rounded-2xl flex flex-col gap-1.5 mb-2">
+            settlementsHtml += `
+              <div id="tab3-card-${s.depId}" class="card bg-white border-2 border-slate-200 p-4 rounded-2xl flex flex-col gap-1.5 mb-2 shadow-2xs">
                 <div class="font-black text-sm border-b pb-2 flex justify-between items-center"><span>🏨 บิลมัดจำ: ${s.note}</span><button id="btn-archive-t3-${s.depId}" onclick="closeDepositJob('${s.depId}')" class="btn btn-xs btn-success text-white font-bold h-7 min-h-0 text-[10px]">ยืนยันจ่ายเงินเรียบร้อย 🔒</button></div>
                 <div class="flex flex-col gap-1 mt-1">${rowHtml}</div>
               </div>`;
           });
         }
+        
+        t3Container.innerHTML = netSummaryHtml + settlementsHtml;
       }
 
       // TAB 4
       const t4Container = document.getElementById("tab4-list-container"); 
-if(t4Container) {
-  t4Container.innerHTML = "";
-  (data.members || []).forEach(m => {
-    let personTotalExpense = 0;
+      if(t4Container) {
+        t4Container.innerHTML = "";
+        
+        (data.members || []).forEach(m => {
+          let personTotalExpense = 0;
 
-    // 1. รวมภาระจาก Tab 1
-    (data.tab1Expenses || []).forEach(exp => {
-      (exp.splits || []).forEach(s => {
-        if (s.id === m.id) personTotalExpense += parseFloat(s.share) || 0;
-      });
-    });
+          // รวมภาระค่าใช้จ่ายจาก Tab 1
+          (data.tab1Expenses || []).forEach(exp => {
+            (exp.splits || []).forEach(s => {
+              if (s.id === m.id) personTotalExpense += parseFloat(s.share) || 0;
+            });
+          });
 
-    // 2. รวมภาระจาก Tab 2
-    (data.tab2Deposits || []).forEach(dep => {
-      (dep.details || []).forEach(d => {
-        if (d.id === m.id) {
-          let shareAmt = d.expectedShare > 0 ? d.expectedShare : (d.isTarget ? ((parseFloat(dep.fullCost) || 0) / (dep.targetCount || 1)) : 0);
-          personTotalExpense += parseFloat(shareAmt) || 0;
-        }
-      });
-    });
+          // รวมภาระค่าใช้จ่ายจาก Tab 2
+          (data.tab2Deposits || []).forEach(dep => {
+            (dep.details || []).forEach(d => {
+              if (d.id === m.id) {
+                let shareAmt = d.expectedShare > 0 ? d.expectedShare : (d.isTarget ? ((parseFloat(dep.fullCost) || 0) / (dep.targetCount || 1)) : 0);
+                personTotalExpense += parseFloat(shareAmt) || 0;
+              }
+            });
+          });
 
-    t4Container.innerHTML += `
-      <div class="flex justify-between items-center p-3.5 mb-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
-        <span class="text-slate-800">${m.icon || '👤'} ${m.name}</span>
-        <span class="text-primary font-black text-sm">ค่าใช้จ่ายรวม: ฿${personTotalExpense.toLocaleString(undefined,{minimumFractionDigits:2})} บาท</span>
-      </div>`;
-  });
-}
-
+          t4Container.innerHTML += `
+            <div class="flex justify-between items-center p-3.5 mb-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+              <span class="text-slate-800">${m.icon || '👤'} ${m.name}</span>
+              <span class="text-primary font-black text-sm">ค่าใช้จ่ายรวม: ฿${personTotalExpense.toLocaleString(undefined,{minimumFractionDigits:2})} บาท</span>
+            </div>`;
+        });
+      }
     function silentSyncFinancialData() {
       if (!currentTripId) return;
       callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${currentTripId}`).then(freshData => {
