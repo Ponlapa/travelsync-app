@@ -557,6 +557,12 @@
     function reCalculateAndRenderFinancialViews() {
       if (!globalTripData) return;
       const data = globalTripData;
+      const parseIfNeeded = (data) => {
+        if (typeof data === 'string') {
+          try { return JSON.parse(data); } catch(e) { return []; }
+        }
+        return data || [];
+      };
 
       // Helper สำหรับแปลง ID เป็นชื่อสมาชิก + Icon
       const getMemberName = (mId) => {
@@ -755,13 +761,14 @@
         (data.members || []).forEach(m => {
           let personTotalExpense = 0;
 
-          // รวมภาระค่าใช้จ่าย Tab 1
+          // คำนวณจาก Tab 1
           (data.tab1Expenses || []).forEach(exp => {
+            let splitsArr = parseIfNeeded(exp.splits); // 👈 แปลงข้อมูล String เป็น Array
             let totalAmt = parseFloat(exp.totalAmount) || 0;
-            let splitsCount = (exp.splits || []).length || 1;
+            let splitsCount = splitsArr.length || 1;
             let defaultShare = totalAmt / splitsCount;
 
-            (exp.splits || []).forEach(s => {
+            splitsArr.forEach(s => {
               let mId = getMemberIdFromSplit(s);
               if (mId === m.id) {
                 let shareAmt = (typeof s === 'object' && s.share !== undefined) ? parseFloat(s.share) : defaultShare;
@@ -770,9 +777,10 @@
             });
           });
 
-          // รวมภาระค่าใช้จ่าย Tab 2
+          // คำนวณจาก Tab 2
           (data.tab2Deposits || []).forEach(dep => {
-            (dep.details || []).forEach(d => {
+            let detailsArr = parseIfNeeded(dep.details); // 👈 แปลงข้อมูล String เป็น Array
+            detailsArr.forEach(d => {
               let mId = getMemberIdFromSplit(d);
               if (mId === m.id) {
                 let shareAmt = d.expectedShare > 0 ? d.expectedShare : (d.isTarget ? ((parseFloat(dep.fullCost) || 0) / (dep.targetCount || 1)) : 0);
@@ -788,7 +796,6 @@
             </div>`;
         });
       }
-    }
     function silentSyncFinancialData() {
       if (!currentTripId) return;
       callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${currentTripId}`).then(freshData => {
