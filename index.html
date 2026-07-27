@@ -558,12 +558,27 @@
       if (!globalTripData) return;
       const data = globalTripData;
 
+      // Helper function สำหรับดึงวันที่ให้ชัวร์
+      const getFormattedDate = (obj) => {
+        let rawDate = obj.date || obj.createdAt || obj.created_at || obj.timestamp;
+        if (!rawDate) {
+          return new Date().toISOString().split('T')[0]; // ถ้าไม่มี ให้แสดงวันที่ปัจจุบันของระบบ
+        }
+        if (typeof rawDate === 'string' && rawDate.includes('T')) {
+          return rawDate.split('T')[0];
+        }
+        return rawDate;
+      };
+
+      // 1. คำนวณ Net Balance สุจริตรายคน (สำหรับ Tab 3)
       const summaryMap = (data.members || []).reduce((acc, curr) => { acc[curr.id] = 0; return acc; }, {});
       
       (data.tab1Expenses || []).forEach(exp => {
-        if (summaryMap[exp.payerId] !== undefined) summaryMap[exp.payerId] += parseFloat(exp.totalAmount) || 0;
+        let pId = exp.payerId || exp.payer_id;
+        if (summaryMap[pId] !== undefined) summaryMap[pId] += parseFloat(exp.totalAmount) || 0;
         (exp.splits || []).forEach(s => {
-          if (summaryMap[s.id] !== undefined) summaryMap[s.id] -= parseFloat(s.share) || 0;
+          let memberId = s.userId || s.id; // รองรับทั้ง userId และ id
+          if (summaryMap[memberId] !== undefined) summaryMap[memberId] -= parseFloat(s.share) || 0;
         });
       });
 
@@ -579,10 +594,9 @@
         if (!data.tab1Expenses || data.tab1Expenses.length === 0) {
           t1Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบรายการบิลทั่วไป</div>`;
         } else {
-          // จัดกลุ่มบิลตามวันที่
           let groupedT1 = {};
           data.tab1Expenses.forEach(exp => {
-            let dateStr = exp.createdAt || exp.date || "ไม่ระบุวันที่";
+            let dateStr = getFormattedDate(exp);
             if (!groupedT1[dateStr]) groupedT1[dateStr] = [];
             groupedT1[dateStr].push(exp);
           });
@@ -597,8 +611,8 @@
                 <div class="space-y-2">`;
 
             groupedT1[dateGroup].forEach((h) => {
-              let splitsHtml = (h.splits || []).map(s => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${s.name} ➔ ภาระ: ฿${parseFloat(s.share).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
-              const isPayer = (currentUser && currentUser.id === h.payerId);
+              let splitsHtml = (h.splits || []).map(s => `<div class="text-[11px] text-slate-500 font-bold pl-4 border-l-2 border-slate-200">${s.name || s.userName} ➔ ภาระ: ฿${parseFloat(s.share).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`).join("");
+              const isPayer = (currentUser && currentUser.id === (h.payerId || h.payer_id));
 
               let actionBtn = "";
               if (h.status === "Pending") {
@@ -616,7 +630,7 @@
                   <div class="p-3 flex justify-between items-start">
                     <div class="min-w-0 flex-1 pr-2">
                       <span class="font-black text-slate-800 text-sm block truncate">${h.note}</span>
-                      <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName}</span>
+                      <span class="text-[10px] text-slate-400 font-bold mt-0.5 block">${h.category} • คนจ่าย: ${h.payerName || h.payer_name}</span>
                       <div class="font-black text-slate-700 mt-1 text-sm">ยอดเงินสด: ฿${parseFloat(h.totalAmount).toLocaleString(undefined,{minimumFractionDigits:2})} บาท</div>
                     </div>
                     <div class="flex items-center gap-1.5 shrink-0">
@@ -628,7 +642,6 @@
                       <button type="button" onclick="event.stopPropagation(); deleteTab1Bill('${h.billId}')" class="btn btn-xs btn-circle btn-error text-white border-0 bg-red-500 w-6 h-6 min-h-0 flex items-center justify-center"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
                     </div>
                   </div>
-                  <!-- โซน Detail ที่พับเก็บได้ -->
                   <div id="tab1-col-${h.billId}" class="hidden bg-white border-t border-slate-100 p-3 space-y-1.5">
                     ${splitsHtml}
                     <div class="pt-2 border-t border-slate-100 flex justify-end">
@@ -655,10 +668,9 @@
         if (!data.tab2Deposits || data.tab2Deposits.length === 0) {
           t2Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบโครงการมัดจำ</div>`;
         } else {
-          // จัดกลุ่มบิลตามวันที่
           let groupedT2 = {};
           data.tab2Deposits.forEach(dep => {
-            let dateStr = dep.createdAt || dep.date || "ไม่ระบุวันที่";
+            let dateStr = getFormattedDate(dep);
             if (!groupedT2[dateStr]) groupedT2[dateStr] = [];
             groupedT2[dateStr].push(dep);
           });
@@ -697,7 +709,6 @@
                       <button type="button" onclick="event.stopPropagation(); deleteTab2Bill('${h.depId}')" class="btn btn-xs btn-circle btn-error text-white border-0 bg-red-500 w-6 h-6 min-h-0 flex items-center justify-center"><i class="fa-solid fa-trash-can text-[10px]"></i></button>
                     </div>
                   </div>
-                  <!-- โซน Detail ที่พับเก็บได้ -->
                   <div id="tab2-col-${h.depId}" class="hidden bg-white border-t border-slate-100 p-3 space-y-1.5">
                     ${detailsHtml}
                     <div class="pt-2 border-t border-slate-100 flex justify-end">
@@ -715,51 +726,38 @@
         }
       }
 
-      // TAB 3: ยอดเงินสุทธิสะสม + จับคู่โอน
+      // ==========================================
+      // TAB 3: จัดการเงินมัดจำ (สรุปจับคู่โอนจาก Net Balance)
+      // ==========================================
       const t3Container = document.getElementById("tab3-list-container"); 
       if (t3Container) {
         t3Container.innerHTML = "";
 
-        // 1. คำนวณสรุปการโอนเงินเฉลี่ยหนี้มัดจำทั้งหมด (Grouped by Member)
-        // รวบรวมคำสั่งโอนเงินจากทุกบิลใน tab3Settlements
-        let settlementMap = {}; // Structure: { payerId: { recipientId: totalAmount } }
-
-        (data.members || []).forEach(m => { settlementMap[m.id] = {}; });
-
-        (data.tab3Settlements || []).forEach(s => {
-          (s.instructions || []).forEach(ins => {
-            if (ins.fromId && ins.toId && ins.amount > 0) {
-              if (!settlementMap[ins.fromId]) settlementMap[ins.fromId] = {};
-              if (!settlementMap[ins.fromId][ins.toId]) settlementMap[ins.fromId][ins.toId] = 0;
-              settlementMap[ins.fromId][ins.toId] += parseFloat(ins.amount) || 0;
-            }
-          });
-        });
-
-        // 2. วาด UI แยกตามรายชื่อผู้ร่วมทริป
-        let html = `<div class="mb-2"><span class="text-[10px] text-slate-400 font-bold">ยอดการจัดการเงิน (สรุปรายการต้องจ่ายแยกรายคน)</span></div>`;
+        let summaryHtml = `<div class="mb-2"><span class="text-[11px] font-black text-slate-700">📊 ยอดการจัดการเงิน (สรุปรายการต้องจ่ายแยกรายคน)</span></div>`;
 
         (data.members || []).forEach(m => {
-          let payList = settlementMap[m.id] || {};
-          let payKeys = Object.keys(payList).filter(toId => payList[toId] > 0);
-
           let listRowsHtml = "";
-          if (payKeys.length === 0) {
-            listRowsHtml = `<div class="text-[11px] text-slate-400 italic py-1">ไม่ต้องจ่ายเงินให้ใครเพิ่มเติม</div>`;
-          } else {
-            payKeys.forEach(toId => {
-              let recipient = (data.members || []).find(x => x.id === toId);
-              let recipientName = recipient ? `${recipient.icon || '👤'} ${recipient.name}` : toId;
-              let amt = payList[toId];
-              listRowsHtml += `
-                <div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-100 font-bold">
-                  <span class="text-slate-600">จ่ายให้ <b>${recipientName}</b></span>
-                  <span class="text-rose-600 font-black">➔ ฿${amt.toLocaleString(undefined, {minimumFractionDigits: 2})} บาท</span>
-                </div>`;
+          
+          // ตรวจสอบจาก tab3Settlements
+          (data.tab3Settlements || []).forEach(s => {
+            (s.instructions || []).forEach(ins => {
+              if (ins.fromId === m.id && ins.amount > 0) {
+                let recipient = (data.members || []).find(x => x.id === ins.toId);
+                let recipientName = recipient ? `${recipient.icon || '👤'} ${recipient.name}` : ins.toName;
+                listRowsHtml += `
+                  <div class="flex justify-between items-center text-xs py-1.5 border-b border-slate-100 font-bold">
+                    <span class="text-slate-600">จ่ายให้ <b>${recipientName}</b></span>
+                    <span class="text-rose-600 font-black">➔ ฿${parseFloat(ins.amount).toLocaleString(undefined, {minimumFractionDigits: 2})} บาท</span>
+                  </div>`;
+              }
             });
+          });
+
+          if (!listRowsHtml) {
+            listRowsHtml = `<div class="text-[11px] text-slate-400 italic py-1">ไม่ต้องจ่ายเงินให้ใครเพิ่มเติม</div>`;
           }
 
-          html += `
+          summaryHtml += `
             <div class="card bg-white border border-slate-200 p-3.5 rounded-2xl mb-2.5 shadow-2xs">
               <div class="font-black text-xs text-slate-800 border-b pb-2 mb-1 flex items-center gap-1.5">
                 <span>${m.icon || '👤'} ${m.name}</span>
@@ -770,28 +768,34 @@
             </div>`;
         });
 
-        t3Container.innerHTML = html;
+        t3Container.innerHTML = summaryHtml;
       }
 
+      // ==========================================
       // TAB 4: สรุปภาระค่าใช้จ่ายสะสมรวมรายคน (Tab 1 + Tab 2)
+      // ==========================================
       const t4Container = document.getElementById("tab4-list-container"); 
-      if(t4Container) {
+      if (t4Container) {
         t4Container.innerHTML = "";
         
         (data.members || []).forEach(m => {
           let personTotalExpense = 0;
 
-          // รวมภาระค่าใช้จ่ายจาก Tab 1
+          // รวมภาระค่าใช้จ่ายจาก Tab 1 (เช็คทั้ง userId และ id)
           (data.tab1Expenses || []).forEach(exp => {
             (exp.splits || []).forEach(s => {
-              if (s.id === m.id) personTotalExpense += parseFloat(s.share) || 0;
+              let memberId = s.userId || s.id;
+              if (memberId === m.id) {
+                personTotalExpense += parseFloat(s.share) || 0;
+              }
             });
           });
 
           // รวมภาระค่าใช้จ่ายจาก Tab 2
           (data.tab2Deposits || []).forEach(dep => {
             (dep.details || []).forEach(d => {
-              if (d.id === m.id) {
+              let memberId = d.userId || d.id;
+              if (memberId === m.id) {
                 let shareAmt = d.expectedShare > 0 ? d.expectedShare : (d.isTarget ? ((parseFloat(dep.fullCost) || 0) / (dep.targetCount || 1)) : 0);
                 personTotalExpense += parseFloat(shareAmt) || 0;
               }
@@ -806,7 +810,6 @@
         });
       }
     }
-
     function silentSyncFinancialData() {
       if (!currentTripId) return;
       callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${currentTripId}`).then(freshData => {
