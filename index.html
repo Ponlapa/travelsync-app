@@ -65,7 +65,6 @@
       --color-yellow: #FFCF00;
     }
 
-    /* ปุ่ม Primary และ Tab Active เปลี่ยนเป็นสี Cyan (#00E0BA) */
     .btn-primary, 
     .tabs-boxed .tab-active { 
       background-color: #00E0BA !important; 
@@ -73,14 +72,12 @@
       color: #ffffff !important; 
     }
 
-    /* ปุ่ม Secondary เปลี่ยนเป็นสี Purple (#91008D) */
     .btn-secondary { 
       background-color: #91008D !important; 
       border-color: #91008D !important; 
       color: #ffffff !important; 
     }
 
-    /* Override สี Icon/Text ชั่วคราว */
     .text-primary, #app-bottom-navbar .text-primary { color: #00E0BA !important; }
     .bg-primary { background-color: #00E0BA !important; }
     .text-secondary { color: #91008D !important; }
@@ -353,56 +350,43 @@
     </div>
   </div>
 
-  <div id="modal-add-tab2-final" onclick="closeBottomSheet('modal-add-tab2-final')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
-    <div onclick="event.stopPropagation()" class="bg-white w-full max-w-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
-      <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
-      <h3 class="text-base font-black text-slate-800">💸 อัพเดทการจ่ายเงินงวดสุดท้ายวันจริง</h3>
-      <p id="t2-final-info-label" class="text-[10px] text-slate-400 font-bold bg-slate-50 p-2.5 rounded-xl border border-dashed"></p>
-      <input type="hidden" id="t2-final-depid"><input type="hidden" id="t2-final-expected-paid">
-      <div class="space-y-3">
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ระบุบุคคลที่เป็นคนควักเงินสดจ่ายหน้างานจริง</span></label><select id="t2-final-payer-select" class="select select-bordered w-full bg-slate-50 font-bold text-slate-800"></select></div>
-        <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ยืนยันยอดเงินสดคงค้างงวดสุดท้ายที่จ่ายจริง (บาท)</span></label><input type="number" id="t2-final-paid-input" class="input input-bordered w-full bg-slate-50 font-black text-right text-lg text-primary focus:outline-none"></div>
-        <button onclick="submitTab2FinalPayment()" class="btn btn-primary w-full font-black text-white rounded-xl mt-2 h-11 min-h-0">บันทึกผลจ่ายเงินสดหน้างาน 🏨</button>
-      </div>
-    </div>
-  </div>
+  <!-- MODAL: TAB 2 FINAL PAYMENT (รวมเป็นจุดเดียวและถูกต้อง) -->
   <div id="modal-add-tab2-final" class="fixed inset-0 bg-black/60 z-50 hidden flex items-end sm:items-center justify-center transition-opacity duration-300 opacity-0">
-  <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 transform translate-y-full transition-transform duration-300 shadow-2xl max-h-[90vh] overflow-y-auto">
-    <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
-      <h3 class="font-black text-slate-800 text-base">🏨 อัพเดทจ่ายเงินงวดสุดท้ายหน้างาน</h3>
-      <button type="button" onclick="closeBottomSheet('modal-add-tab2-final')" class="btn btn-sm btn-circle btn-ghost text-slate-400 font-bold">✕</button>
-    </div>
-    
-    <input type="hidden" id="t2-final-depid">
-    <input type="hidden" id="t2-final-expected-paid">
-
-    <div class="space-y-3">
-      <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-        <span id="t2-final-info-label" class="text-xs font-black text-slate-700 block">บิล: - | จ่ายเพิ่มหน้างาน: ฿0</span>
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 transform translate-y-full transition-transform duration-300 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
+        <h3 class="font-black text-slate-800 text-base">🏨 อัพเดทจ่ายเงินงวดสุดท้ายหน้างาน</h3>
+        <button type="button" onclick="closeBottomSheet('modal-add-tab2-final')" class="btn btn-sm btn-circle btn-ghost text-slate-400 font-bold">✕</button>
       </div>
+      
+      <input type="hidden" id="t2-final-depid">
+      <input type="hidden" id="t2-final-expected-paid">
 
-      <div>
-        <label class="text-xs font-black text-slate-700 block mb-1">เลือกสมาชิกคนที่จ่ายเงินสดหน้างานจริง:</label>
-        <select id="t2-final-payer-select" class="select select-bordered select-sm w-full font-bold text-slate-800 bg-white"></select>
-      </div>
+      <div class="space-y-3">
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+          <span id="t2-final-info-label" class="text-xs font-black text-slate-700 block">บิล: - | จ่ายเพิ่มหน้างาน: ฿0</span>
+        </div>
 
-      <div>
-        <label class="text-xs font-black text-slate-700 block mb-1">ยอดเงินสดที่จ่ายจริงหน้างาน (บาท):</label>
-        <input type="number" id="t2-final-paid-input" min="0" class="input input-bordered input-sm w-full font-black text-slate-800 text-right">
-      </div>
+        <div>
+          <label class="text-xs font-black text-slate-700 block mb-1">เลือกสมาชิกคนที่จ่ายเงินสดหน้างานจริง:</label>
+          <select id="t2-final-payer-select" class="select select-bordered select-sm w-full font-bold text-slate-800 bg-white"></select>
+        </div>
 
-      <div class="pt-3">
-        <button type="button" onclick="submitTab2FinalPayment()" class="btn btn-primary w-full text-white font-black rounded-xl shadow-lg">บันทึกผลจ่ายเงินสดหน้างาน ✅</button>
+        <div>
+          <label class="text-xs font-black text-slate-700 block mb-1">ยอดเงินสดที่จ่ายจริงหน้างาน (บาท):</label>
+          <input type="number" id="t2-final-paid-input" min="0" class="input input-bordered input-sm w-full font-black text-slate-800 text-right">
+        </div>
+
+        <div class="pt-3">
+          <button type="button" onclick="submitTab2FinalPayment()" class="btn btn-primary w-full text-white font-black rounded-xl shadow-lg">บันทึกผลจ่ายเงินสดหน้างาน ✅</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
   <!-- JAVASCRIPT CORE ENGINE -->
   <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxTLRWerX27djKJKPK_bcni6DI1KlQyuWMCmgsOys46EwunwJa4Dl2PepLAO3fTkTcu/exec";
     
-    // 💾 Global State Management
     let currentUser = null; 
     let currentTripId = null;
     let globalTripData = null;
@@ -486,12 +470,10 @@
 
     function enterTripDashboard(tripId) {
       currentTripId = tripId;
-
       Swal.fire({ title: 'กำลังโหลดข้อมูลทริป...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
       callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${tripId}`).then(data => {
         Swal.close();
         if(!data || !data.success) return;
-
         globalTripData = data; 
         renderFullDashboardUI();
         switchToView("view-dashboard");
@@ -502,12 +484,10 @@
     function renderFullDashboardUI() {
       if (!globalTripData) return;
       const data = globalTripData; 
-      
       document.getElementById("dash-trip-title").innerText = "ระบบบัญชีกลุ่มทริป";
       cachedActiveTripMembersList = data.members || [];
       globalItineraryDataCached = data.itinerary || [];
 
-      // Host Control Box
       const hostBox = document.getElementById("host-approval-box");
       const pendingContainer = document.getElementById("pending-members-list");
       if (hostBox && pendingContainer) {
@@ -521,12 +501,10 @@
         } else { hostBox.classList.add("hidden"); }
       }
 
-      // 📅 แถบวันเดินทาง
       const tabsBar = document.getElementById("itinerary-day-tabs-bar");
       if (tabsBar) {
         tabsBar.innerHTML = "";
         let uniqueDates = [...new Set(globalItineraryDataCached.map(item => item.date).filter(Boolean))].sort();
-        
         if (uniqueDates.length > 0) {
           if (activeSelectedDayDate === "" || !uniqueDates.includes(activeSelectedDayDate)) {
             activeSelectedDayDate = uniqueDates[0];
@@ -560,7 +538,6 @@
       
       filtered.sort((a, b) => (a.time || "").localeCompare(b.time || "")).forEach(item => { 
         const map = item.mapUrl ? `<a href="${item.mapUrl}" target="_blank" class="btn btn-sm btn-circle btn-info text-white shadow-md flex items-center justify-center w-7 h-7" style="background-color:#0284c7 !important; border:0;"><i class="fa-solid fa-location-dot text-xs"></i></a>` : ""; 
-        
         const safeAct = (item.activity || "").replace(/'/g, "\\'");
         const safeLoc = (item.location || "").replace(/'/g, "\\'");
         const safeMap = (item.mapUrl || "").replace(/'/g, "\\'");
@@ -588,12 +565,6 @@
     function reCalculateAndRenderFinancialViews() {
       if (!globalTripData) return;
       const data = globalTripData;
-      const parseIfNeeded = (data) => {
-        if (typeof data === 'string') {
-          try { return JSON.parse(data); } catch(e) { return []; }
-        }
-        return data || [];
-      };
 
       const getMemberName = (mId) => {
         const found = (data.members || []).find(m => m.id === mId);
@@ -601,37 +572,16 @@
       };
 
       const getMemberIdFromSplit = (item) => {
-  if (!item) return "";
-  
-  // ดึงค่า ID ไม่ว่าจะเป็น String, Number หรือ Object
-  let rawId = (typeof item === 'object') 
-    ? (item.userId || item.id || item.memberId || item.user_id || "") 
-    : item;
-  
-  // แปลงเป็น String แล้วลบอักขระพิเศษที่ไม่ใช่ ID ออกทั้งหมด
-  return String(rawId).replace(/[^a-zA-Z0-9_-]/g, "").trim();
-};
-
-      const summaryMap = (data.members || []).reduce((acc, curr) => { acc[curr.id] = 0; return acc; }, {});
-
-      (data.tab1Expenses || []).forEach(exp => {
-        let pId = exp.payerId || exp.payer_id;
-        if (summaryMap[pId] !== undefined) summaryMap[pId] += parseFloat(exp.totalAmount) || 0;
-
-        (exp.splits || []).forEach(s => {
-          let mId = getMemberIdFromSplit(s);
-          let shareAmt = typeof s === 'object' && s.share !== undefined ? parseFloat(s.share) : (parseFloat(exp.totalAmount) / (exp.splits.length || 1));
-          if (mId && summaryMap[mId] !== undefined) {
-            summaryMap[mId] -= shareAmt;
-          }
-        });
-      });
+        if (!item) return "";
+        let rawId = (typeof item === 'object') ? (item.userId || item.id || item.memberId || item.user_id || "") : item;
+        return String(rawId).replace(/[^a-zA-Z0-9_-]/g, "").trim();
+      };
 
       let safeTotalCost = (data.totalTripExpense !== undefined && data.totalTripExpense !== null) 
-  ? parseFloat(data.totalTripExpense) 
-  : (data.tab4Report || []).reduce((acc, curr) => acc + (parseFloat(curr.paid) || 0), 0);
+        ? parseFloat(data.totalTripExpense) 
+        : (data.tab4Report || []).reduce((acc, curr) => acc + (parseFloat(curr.paid) || 0), 0);
 
-document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined,{minimumFractionDigits:2})} บาท`;
+      document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined,{minimumFractionDigits:2})} บาท`;
 
       // TAB 1
       const t1Container = document.getElementById("tab1-list-container"); 
@@ -647,9 +597,7 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
 
             let splitsHtml = (h.splits || []).map(s => {
               let mId = getMemberIdFromSplit(s);
-              let displayName = (typeof s === 'object' && s.name && !s.name.includes("ไม่ระบุชื่อ")) 
-                ? s.name 
-                : getMemberName(mId);
+              let displayName = (typeof s === 'object' && s.name && !s.name.includes("ไม่ระบุชื่อ")) ? s.name : getMemberName(mId);
               let shareAmt = (typeof s === 'object' && s.share !== undefined) ? parseFloat(s.share) : defaultShare;
               return `<div class="text-[11px] text-slate-600 font-bold pl-4 border-l-2 border-slate-200">${displayName} ➔ ภาระ: ฿${shareAmt.toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`;
             }).join("");
@@ -703,8 +651,9 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
               return `<div class="text-[11px] text-slate-600 font-bold pl-4 border-l-2 border-slate-200">${displayName} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit || 0).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`;
             }).join("");
 
+            // ใช้ชื่อฟังก์ชัน openFinalPaymentManager เป็นมาตรฐานเดียวกัน
             let actionBtn = h.status === "Awaiting_Final" 
-              ? `<button id="btn-final-t2-${h.depId}" onclick="event.stopPropagation(); openFinalPaymentModal('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-6 min-h-0 text-[10px] px-2 rounded-lg">อัพเดทจ่ายเงิน 🏨</button>` 
+              ? `<button id="btn-final-t2-${h.depId}" onclick="event.stopPropagation(); openFinalPaymentManager('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-6 min-h-0 text-[10px] px-2 rounded-lg">อัพเดทจ่ายเงิน 🏨</button>` 
               : `<span class="badge badge-neutral text-[9px] font-black p-1.5 h-5">${h.status === "Ready_To_Settle" ? "รอเคลียร์หนี้" : "ปิดโครงการ"}</span>`;
 
             t2Container.innerHTML += `
@@ -865,7 +814,6 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
     function toggleT1SplitMode() {
       t1IsCustomMode = document.getElementById("t1-custom-split-toggle").checked;
       const alertBox = document.getElementById("t1-balance-alert");
-      
       const inputs = document.querySelectorAll("input[id^='input-t1-amt-']");
       inputs.forEach(inp => {
         if (t1IsCustomMode) {
@@ -878,7 +826,6 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
           inp.classList.add("bg-slate-50");
         }
       });
-
       if (t1IsCustomMode) {
         if (alertBox) alertBox.classList.remove("hidden");
         recalculateT1CustomAmounts();
@@ -893,10 +840,8 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
       const chks = document.querySelectorAll("input[name='chk-t1-user']:checked");
       if (chks.length === 0) return;
       const sharePerPerson = (totalAmt / chks.length).toFixed(2);
-
       const allInputs = document.querySelectorAll("input[id^='input-t1-amt-']");
       allInputs.forEach(inp => inp.value = "0");
-
       chks.forEach(chk => {
         const inputEl = document.getElementById(`input-t1-amt-${chk.value}`);
         if (inputEl) inputEl.value = sharePerPerson;
@@ -907,7 +852,6 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
       if (!t1IsCustomMode) return;
       const totalAmt = parseFloat(document.getElementById("t1-amount").value) || 0;
       let sumUsed = 0;
-
       const inputs = document.querySelectorAll("input[id^='input-t1-amt-']");
       inputs.forEach(inp => {
         const chk = document.querySelector(`input[name='chk-t1-user'][value='${inp.id.replace('input-t1-amt-', '')}']`);
@@ -915,14 +859,11 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
           sumUsed += parseFloat(inp.value) || 0;
         }
       });
-
       const remaining = totalAmt - sumUsed;
       if (document.getElementById("t1-lbl-total")) document.getElementById("t1-lbl-total").innerText = totalAmt.toLocaleString();
       if (document.getElementById("t1-lbl-used")) document.getElementById("t1-lbl-used").innerText = sumUsed.toLocaleString();
-
       const statusLbl = document.getElementById("t1-lbl-status");
       const alertBox = document.getElementById("t1-balance-alert");
-
       if (statusLbl && alertBox) {
         if (Math.abs(remaining) < 0.01) {
           statusLbl.innerText = "ยอดเงินถูกต้องครบถ้วน ✅";
@@ -1006,7 +947,6 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
 
     function openEditItineraryModal(id, date, time, act, loc, map) {
       if (window.event) window.event.stopPropagation();
-
       const modalTitle = document.getElementById("iti-modal-title");
       const submitBtn = document.getElementById("iti-submit-btn");
       const editId = document.getElementById("iti-edit-id");
@@ -1055,7 +995,6 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
         if(res.success) { 
           closeBottomSheet("modal-add-itinerary"); 
           activeSelectedDayDate = date; 
-          
           silentSyncFinancialData();
           callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${currentTripId}`).then(data => {
             if(data && data.success) {
@@ -1083,7 +1022,6 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
       }
 
       closeBottomSheet("modal-add-tab1");
-
       callAPI(WEB_APP_URL, 'POST', { 
         action: "addExpenseNew", 
         tripId: currentTripId, 
@@ -1104,26 +1042,48 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
         .then(() => silentSyncFinancialData());
     }
 
-    function openFinalPaymentModal(depId, note, fullCost, totalDeposit) {
-      if(window.event) window.event.stopPropagation();
+    // ฟังก์ชันเปิด Modal อัพเดทจ่ายเงินงวดสุดท้ายของ Tab 2
+    function openFinalPaymentManager(depId, note, fullCost, totalDeposit) {
+      if (window.event) window.event.stopPropagation();
       document.getElementById("t2-final-depid").value = depId;
-      const expectedPaid = fullCost - totalDeposit;
+      const expectedPaid = Math.max(0, fullCost - totalDeposit);
       document.getElementById("t2-final-expected-paid").value = expectedPaid;
       document.getElementById("t2-final-paid-input").value = expectedPaid;
-      document.getElementById("t2-final-info-label").innerText = `บิล: ${note} | จ่ายเพิ่มหน้างาน: ฿${expectedPaid}`;
-      const select = document.getElementById("t2-final-payer-select"); select.innerHTML = "";
-      if(globalTripData) { globalTripData.members.forEach(m => { select.innerHTML += `<option value="${m.id}">${m.icon || '👤'} ${m.name}</option>`; }); }
+      document.getElementById("t2-final-info-label").innerText = `บิล: ${note} | จ่ายเพิ่มหน้างาน: ฿${expectedPaid.toLocaleString(undefined, {minimumFractionDigits:2})}`;
+      
+      const select = document.getElementById("t2-final-payer-select"); 
+      if (select && globalTripData) {
+        select.innerHTML = "";
+        globalTripData.members.forEach(m => { 
+          select.innerHTML += `<option value="${m.id}">${m.icon || '👤'} ${m.name}</option>`; 
+        });
+      }
       openBottomSheet("modal-add-tab2-final");
     }
 
+    // ฟังก์ชันกดส่งข้อมูลอัพเดทจ่ายเงินงวดสุดท้ายเพื่อเปลี่ยนสถานะเป็น Ready_To_Settle
     function submitTab2FinalPayment() {
-      const depId = document.getElementById("t2-final-depid").value, payerId = document.getElementById("t2-final-payer-select").value, paidInput = parseFloat(document.getElementById("t2-final-paid-input").value) || 0;
+      const depId = document.getElementById("t2-final-depid").value;
+      const payerId = document.getElementById("t2-final-payer-select").value;
+      const paidInput = parseFloat(document.getElementById("t2-final-paid-input").value) || 0;
+      
       closeBottomSheet("modal-add-tab2-final");
+      
       const btn = document.getElementById(`btn-final-t2-${depId}`);
-      if(btn) { btn.innerText = "⏳ กำลังบันทึก..."; btn.disabled = true; }
-      callAPI(WEB_APP_URL, 'POST', { action: "updateDepositFinalPayment", depId: depId, finalPaid: paidInput, finalPayerId: payerId }).then(() => { 
-        activeCurrentFinTabIdx = 3; 
-        silentSyncFinancialData(); 
+      if (btn) { btn.innerText = "⏳ กำลังบันทึก..."; btn.disabled = true; }
+      
+      callAPI(WEB_APP_URL, 'POST', { 
+        action: "updateDepositFinalPayment", 
+        depId: depId, 
+        finalPaid: paidInput, 
+        finalPayerId: payerId 
+      }).then((res) => { 
+        if (res && res.success) {
+          activeCurrentFinTabIdx = 3; 
+          silentSyncFinancialData(); 
+        } else {
+          Swal.fire("ล้มเหลว", res.error || "ไม่สามารถอัพเดทข้อมูลได้", "error");
+        }
       });
     }
 
@@ -1208,84 +1168,6 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
           if(row) row.remove();
           callAPI(WEB_APP_URL, 'POST', { action: "deleteDepositFull", depId: depId }).then(() => {
             if(globalTripData) {
-              globalTripData.tab2Deposits = globalTripData.tab2Deposits.filter(x => x.depId !== depId);
-              globalTripData.tab3Settlements = globalTripData.tab3Settlements.filter(x => x.depId !== depId);
-              reCalculateAndRenderFinancialViews();
-            }
-            silentSyncFinancialData();
-          });
-        }
-      });
-    }
-
-    // ฟังก์ชันเปิด Modal อัพเดทจ่ายเงินงวดสุดท้ายของ Tab 2
-    function openFinalPaymentManager(depId, note, fullCost, totalDeposit) {
-      if (window.event) window.event.stopPropagation();
-      document.getElementById("t2-final-depid").value = depId;
-      const expectedPaid = Math.max(0, fullCost - totalDeposit);
-      document.getElementById("t2-final-expected-paid").value = expectedPaid;
-      document.getElementById("t2-final-paid-input").value = expectedPaid;
-      document.getElementById("t2-final-info-label").innerText = `บิล: ${note} | จ่ายเพิ่มหน้างาน: ฿${expectedPaid.toLocaleString(undefined, {minimumFractionDigits:2})}`;
-      
-      const select = document.getElementById("t2-final-payer-select"); 
-      if (select && globalTripData) {
-        select.innerHTML = "";
-        globalTripData.members.forEach(m => { 
-          select.innerHTML += `<option value="${m.id}">${m.icon || '👤'} ${m.name}</option>`; 
-        });
-      }
-      openBottomSheet("modal-add-tab2-final");
-    }
-
-    // ฟังก์ชันกดส่งข้อมูลอัพเดทจ่ายเงินงวดสุดท้ายเพื่อเปลี่ยนสถานะเป็น Ready_To_Settle
-    function submitTab2FinalPayment() {
-      const depId = document.getElementById("t2-final-depid").value;
-      const payerId = document.getElementById("t2-final-payer-select").value;
-      const paidInput = parseFloat(document.getElementById("t2-final-paid-input").value) || 0;
-      
-      closeBottomSheet("modal-add-tab2-final");
-      
-      const btn = document.getElementById(`btn-final-t2-${depId}`);
-      if (btn) { btn.innerText = "⏳ กำลังบันทึก..."; btn.disabled = true; }
-      
-      callAPI(WEB_APP_URL, 'POST', { 
-        action: "updateDepositFinalPayment", 
-        depId: depId, 
-        finalPaid: paidInput, 
-        finalPayerId: payerId 
-      }).then((res) => { 
-        if (res && res.success) {
-          activeCurrentFinTabIdx = 3; // สลับไปหน้า Tab 3 อัตโนมัติหลังบันทึกเสร็จ
-          silentSyncFinancialData(); 
-        } else {
-          Swal.fire("ล้มเหลว", res.error || "ไม่สามารถอัพเดทข้อมูลได้", "error");
-        }
-      });
-    }
-
-    // ฟังก์ชันลบบิลมัดจำใน Tab 2
-    function deleteTab2Bill(depId) {
-      if (window.event) window.event.stopPropagation();
-      Swal.fire({
-        title: 'ยืนยันลบโครงการมัดจำ?',
-        text: "รายการมัดจำและข้อมูลการโอนทั้งหมดจะถูกลบทิ้งถาวร!",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#94a3b8',
-        confirmButtonText: 'ใช่, ลบทันที!',
-        cancelButtonText: 'ยกเลิก',
-        customClass: {
-          confirmButton: 'btn bg-red-500 text-white font-black px-4 mx-1 border-0',
-          cancelButton: 'btn bg-slate-400 text-white font-black px-4 mx-1 border-0'
-        },
-        buttonsStyling: false
-      }).then((result) => {
-        if (result.isConfirmed) {
-          const row = document.getElementById(`tab2-row-${depId}`);
-          if (row) row.remove();
-          callAPI(WEB_APP_URL, 'POST', { action: "deleteDepositFull", depId: depId }).then(() => {
-            if (globalTripData) {
               globalTripData.tab2Deposits = globalTripData.tab2Deposits.filter(x => x.depId !== depId);
               globalTripData.tab3Settlements = globalTripData.tab3Settlements.filter(x => x.depId !== depId);
               reCalculateAndRenderFinancialViews();
