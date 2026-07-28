@@ -395,7 +395,7 @@
       <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
       <h3 id="iti-modal-title" class="text-base font-black text-slate-800">📌 เพิ่มกิจกรรมลงบนแผนการเดินทาง</h3>
       <input type="hidden" id="iti-edit-id" value="">
-      <input type="hidden" id="iti-edit-id" value="">
+      <input type="hidden" id="iti-mode" value="add">
       <input type="hidden" id="iti-old-date" value="">
       <input type="hidden" id="iti-old-time" value="">
       <input type="hidden" id="iti-old-loc" value="">
@@ -1154,9 +1154,13 @@
     function openAddItineraryModal() {
       const modalTitle = document.getElementById("iti-modal-title");
       const submitBtn = document.getElementById("iti-submit-btn");
-      const editId = document.getElementById("iti-edit-id");
 
-      if (editId) editId.value = "";
+      if (document.getElementById("iti-edit-id")) document.getElementById("iti-edit-id").value = "";
+      if (document.getElementById("iti-mode")) document.getElementById("iti-mode").value = "add"; // ตั้งเป็นโหมดเพิ่ม
+      if (document.getElementById("iti-old-date")) document.getElementById("iti-old-date").value = "";
+      if (document.getElementById("iti-old-time")) document.getElementById("iti-old-time").value = "";
+      if (document.getElementById("iti-old-loc")) document.getElementById("iti-old-loc").value = "";
+
       if (modalTitle) modalTitle.innerText = "📌 เพิ่มกิจกรรมลงบนแผนการเดินทาง";
       if (submitBtn) submitBtn.innerText = "บันทึกลงปฏิทินทริป ⏰";
 
@@ -1170,25 +1174,26 @@
 
       openBottomSheet('modal-add-itinerary');
     }
-
     function openEditItineraryModal(id, date, time, act, loc, map) {
       if (window.event) window.event.stopPropagation();
       const modalTitle = document.getElementById("iti-modal-title");
       const submitBtn = document.getElementById("iti-submit-btn");
-      const editId = document.getElementById("iti-edit-id");
 
-      if (editId) editId.value = id;
+      if (document.getElementById("iti-edit-id")) {
+        document.getElementById("iti-edit-id").value = (id && id !== 'undefined' && id !== 'null') ? id : "";
+      }
+      if (document.getElementById("iti-mode")) document.getElementById("iti-mode").value = "edit"; // ตั้งเป็นโหมดแก้ไข
+
       if (modalTitle) modalTitle.innerText = "✏️ แก้ไขแผนการเดินทาง";
       if (submitBtn) submitBtn.innerText = "บันทึกการแก้ไข 💾";
 
-      // 📍 เซ็ตค่าปัจจุบันลงในช่องกรอก
       if (document.getElementById("iti-date")) document.getElementById("iti-date").value = date;
       if (document.getElementById("iti-time")) document.getElementById("iti-time").value = time;
       if (document.getElementById("iti-act")) document.getElementById("iti-act").value = act;
       if (document.getElementById("iti-loc")) document.getElementById("iti-loc").value = loc;
       if (document.getElementById("iti-map")) document.getElementById("iti-map").value = map;
 
-      // 📍 บันทึกค่าข้อมูลเดิมเก็บไว้เทียบเคียง (กรณีไม่มี ID)
+      // บันทึกค่าเดิมไว้สำหรับกิจกรรมเก่าที่ไม่มี ID
       if (document.getElementById("iti-old-date")) document.getElementById("iti-old-date").value = date;
       if (document.getElementById("iti-old-time")) document.getElementById("iti-old-time").value = time;
       if (document.getElementById("iti-old-loc")) document.getElementById("iti-old-loc").value = loc;
@@ -1198,6 +1203,7 @@
 
     function handleRegisterItinerary() { 
       const editId = document.getElementById("iti-edit-id").value;
+      const isEditMode = document.getElementById("iti-mode") ? (document.getElementById("iti-mode").value === "edit") : false;
       const date = document.getElementById("iti-date").value;
       const time = document.getElementById("iti-time").value;
       const act = document.getElementById("iti-act").value.trim();
@@ -1206,14 +1212,15 @@
       
       if(!date || !time || !act || !loc) return Swal.fire("แจ้งเตือน", "กรุณากรอกข้อมูลให้ครบถ้วน", "warning");
 
-      const actionType = editId ? "updateItinerary" : "addItinerary";
+      // เช็กจากสถานะโหมด (isEditMode) ว่าเป็นการแก้ไขหรือไม่ ไม่ว่าจะกิจกรรมมี ID หรือไม่ก็ตาม
+      const actionType = isEditMode ? "updateItinerary" : "addItinerary";
       const payload = { 
         action: actionType, 
         tripId: currentTripId, 
-        id: editId,               // ส่ง ID ไปเช็กก่อน
-        oldDate: document.getElementById("iti-old-date") ? document.getElementById("iti-old-date").value : date,     // วันที่เดิม (กรณีไม่มี ID)
-        oldTime: document.getElementById("iti-old-time") ? document.getElementById("iti-old-time").value : time,     // เวลาเดิม
-        oldLocation: document.getElementById("iti-old-loc") ? document.getElementById("iti-old-loc").value : loc, // สถานที่เดิม
+        id: editId,
+        oldDate: document.getElementById("iti-old-date") ? document.getElementById("iti-old-date").value : date,
+        oldTime: document.getElementById("iti-old-time") ? document.getElementById("iti-old-time").value : time,
+        oldLocation: document.getElementById("iti-old-loc") ? document.getElementById("iti-old-loc").value : loc,
         date: date, 
         time: time, 
         activity: act, 
