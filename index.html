@@ -642,9 +642,8 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
             let splitsCount = (h.splits || []).length || 1;
             let defaultShare = totalAmt / splitsCount;
 
-           et splitsHtml = (h.splits || []).map(s => {
+            let splitsHtml = (h.splits || []).map(s => {
               let mId = getMemberIdFromSplit(s);
-              // เช็คทั้ง s.name, การดึงจาก Map, และค่า mId โดยตรง
               let displayName = (typeof s === 'object' && s.name && !s.name.includes("ไม่ระบุชื่อ")) 
                 ? s.name 
                 : getMemberName(mId);
