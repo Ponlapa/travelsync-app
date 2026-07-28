@@ -654,7 +654,7 @@
             // ใช้ชื่อฟังก์ชัน openFinalPaymentManager เป็นมาตรฐานเดียวกัน
             let actionBtn = h.status === "Awaiting_Final" 
               ? `<button id="btn-final-t2-${h.depId}" onclick="event.stopPropagation(); openFinalPaymentManager('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-6 min-h-0 text-[10px] px-2 rounded-lg">อัพเดทจ่ายเงิน 🏨</button>` 
-              : `<span class="badge badge-neutral text-[9px] font-black p-1.5 h-5">${h.status === "Ready_To_Settle" ? "รอเคลียร์หนี้" : "ปิดโครงการ"}</span>`;
+              : `<span class="badge badge-neutral text-[9px] font-black p-1.5 h-5">${h.status === "Ready_To_Settle" ? "จ่ายเรียบร้อย" : "ปิดโครงการ"}</span>`;
 
             t2Container.innerHTML += `
               <div id="tab2-row-${h.depId}" class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
