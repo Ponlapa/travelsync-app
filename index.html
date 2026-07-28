@@ -601,12 +601,15 @@
       };
 
       const getMemberIdFromSplit = (item) => {
-  let rawId = "";
-  if (typeof item === 'string') rawId = item;
-  else if (item) rawId = item.userId || item.id || item.memberId || item.user_id || "";
+  if (!item) return "";
   
-  // ลบพวกวงเล็บ [ ] และอัญประกาศ " ออกให้หมด
-  return String(rawId).replace(/[^a-zA-Z0-9_-]/g, "");
+  // ดึงค่า ID ไม่ว่าจะเป็น String, Number หรือ Object
+  let rawId = (typeof item === 'object') 
+    ? (item.userId || item.id || item.memberId || item.user_id || "") 
+    : item;
+  
+  // แปลงเป็น String แล้วลบอักขระพิเศษที่ไม่ใช่ ID ออกทั้งหมด
+  return String(rawId).replace(/[^a-zA-Z0-9_-]/g, "").trim();
 };
 
       const summaryMap = (data.members || []).reduce((acc, curr) => { acc[curr.id] = 0; return acc; }, {});
