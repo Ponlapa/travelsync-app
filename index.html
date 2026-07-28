@@ -145,6 +145,34 @@
     background-color: #f1f5f9 !important;
     color: #00E0BA !important;
   }
+    .member-dropdown-panel {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background-color: #ffffff;
+    min-width: 180px;
+    box-shadow: 0px 4px 16px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    z-index: 50;
+    border: 1px solid #e2e8f0;
+    padding: 8px;
+    margin-top: 4px;
+  }
+  .member-dropdown-panel.show {
+    display: block;
+  }
+  /* ปุ่มไอคอนรูปคน กลืนกับพื้นหลัง และเปลี่ยนสีเมื่อเอาเมาส์ชี้ */
+  .trip-icon-btn {
+    background-color: transparent !important;
+    border: none !important;
+    color: #94a3b8 !important;
+    transition: all 0.2s ease;
+  }
+  .trip-icon-btn:hover {
+    color: #00E0BA !important;
+    background-color: #f8fafc !important;
+  }
   </style>
 </head>
 <body>
@@ -220,22 +248,23 @@
       <div class="flex-1 overflow-hidden relative">
         <!-- SUB VIEW: ITINERARY -->
         <div id="sub-view-itinerary" class="hidden">
-          <div class="flex justify-between items-center mb-1 shrink-0">
+          <div class="flex justify-between items-center mb-1 shrink-0 relative">
   <h3 class="text-sm font-black text-slate-800 flex items-center gap-1.5">
     <i class="fa-solid fa-map-location-dot text-slate-400"></i> แผนกิจกรรมทริป
   </h3>
   
-  <div class="flex items-center gap-2">
-    <!-- 📍 จุดที่วงกลมไว้: ปุ่ม Popup เมนูซ่อน (สีกลืนพื้นหลัง โชว์เมื่อเอาเมาส์ชี้) -->
-    <div class="trip-menu-dropdown">
-      <button class="btn btn-xs bg-transparent border-0 text-slate-400 hover:text-slate-700 hover:bg-slate-100 font-bold px-2 rounded-lg h-6 min-h-0 text-[10px]">
-        <i class="fa-solid fa-ellipsis-vertical"></i> เมนูจัดการ
+  <div class="flex items-center gap-1">
+    <!-- 📍 ปุ่มไอคอนรูปคน/เฟือง กดเพื่อ Show / Hide เมนูจัดการสมาชิก -->
+    <div class="relative">
+      <button onclick="toggleMemberMenu(event)" class="btn btn-xs btn-circle trip-icon-btn w-7 h-7 min-h-0 flex items-center justify-center">
+        <i class="fa-solid fa-user-gear text-xs"></i>
       </button>
-      <div class="trip-menu-content">
-        <button onclick="openAddMemberModal()" class="trip-menu-item">
-          <i class="fa-solid fa-user-plus mr-1.5"></i> เพิ่มสมาชิก
+      
+      <!-- แถบ Popup เมนูที่จะแสดงเมื่อกดไอคอน -->
+      <div id="member-action-panel" class="member-dropdown-panel">
+        <button onclick="openAddMemberModal(); toggleMemberMenu(event);" class="btn btn-xs btn-ghost w-full justify-start text-slate-700 hover:text-primary hover:bg-slate-50 font-bold text-xs gap-2">
+          <i class="fa-solid fa-user-plus"></i> เพิ่มสมาชิก
         </button>
-        <!-- สามารถเพิ่มเมนูอื่นๆ ใน Popup ตรงนี้ได้อีก -->
       </div>
     </div>
 
@@ -1399,6 +1428,21 @@
       const target = document.getElementById(viewId); if (target) { target.classList.remove("hidden"); target.style.display = "flex"; }
       if(viewId === "view-dashboard" && nav) { nav.classList.remove("hidden"); }
     }
+    function toggleMemberMenu(event) {
+    if (window.event) window.event.stopPropagation();
+    const panel = document.getElementById("member-action-panel");
+    if (panel) {
+      panel.classList.toggle("show");
+    }
+  }
+
+  // กดคลิกพื้นที่ว่างที่อื่นเพื่อปิด Popup อัตโนมัติ
+  window.addEventListener("click", function() {
+    const panel = document.getElementById("member-action-panel");
+    if (panel && panel.classList.contains("show")) {
+      panel.classList.remove("show");
+    }
+  });
   </script>
   <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').then(() => console.log('PWA OK')); }</script>
 </body>
