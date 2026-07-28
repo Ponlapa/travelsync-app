@@ -1178,11 +1178,15 @@
       if (window.event) window.event.stopPropagation();
       const modalTitle = document.getElementById("iti-modal-title");
       const submitBtn = document.getElementById("iti-submit-btn");
-
-      if (document.getElementById("iti-edit-id")) {
-        document.getElementById("iti-edit-id").value = (id && id !== 'undefined' && id !== 'null') ? id : "";
+      
+      // 📍 บังคับดึง ID เก่ามาใส่ให้ถูกต้อง (ถ้าไม่มี ID หรือเป็น undefined ให้ปล่อยว่าง)
+      const editIdInput = document.getElementById("iti-edit-id");
+      if (editIdInput) {
+        editIdInput.value = (id && id !== 'undefined' && id !== 'null') ? id : "";
       }
-      if (document.getElementById("iti-mode")) document.getElementById("iti-mode").value = "edit"; // ตั้งเป็นโหมดแก้ไข
+
+      // เซ็ตสถานะเป็นโหมดแก้ไข
+      if (document.getElementById("iti-mode")) document.getElementById("iti-mode").value = "edit";
 
       if (modalTitle) modalTitle.innerText = "✏️ แก้ไขแผนการเดินทาง";
       if (submitBtn) submitBtn.innerText = "บันทึกการแก้ไข 💾";
@@ -1193,14 +1197,13 @@
       if (document.getElementById("iti-loc")) document.getElementById("iti-loc").value = loc;
       if (document.getElementById("iti-map")) document.getElementById("iti-map").value = map;
 
-      // บันทึกค่าเดิมไว้สำหรับกิจกรรมเก่าที่ไม่มี ID
+      // บันทึกค่าเดิมไว้เทียบเคียง (กรณีไม่มี ID)
       if (document.getElementById("iti-old-date")) document.getElementById("iti-old-date").value = date;
       if (document.getElementById("iti-old-time")) document.getElementById("iti-old-time").value = time;
       if (document.getElementById("iti-old-loc")) document.getElementById("iti-old-loc").value = loc;
 
       openBottomSheet('modal-add-itinerary');
     }
-
     function handleRegisterItinerary() { 
       const editId = document.getElementById("iti-edit-id").value;
       const isEditMode = document.getElementById("iti-mode") ? (document.getElementById("iti-mode").value === "edit") : false;
