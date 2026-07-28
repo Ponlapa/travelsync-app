@@ -23,7 +23,7 @@
     }
     .app-container {
       width: 100%; 
-      max-width: 100%; /* 👈 ยืดหยุ่นเต็มจออุปกรณ์มือถือ */
+      max-width: 100%; 
       height: 100dvh; 
       background-color: #ffffff;
       display: flex; flex-direction: column;
@@ -33,7 +33,7 @@
     }
     @media (min-width: 640px) {
       .app-container {
-        max-width: 480px; /* จำกัดความกว้างบนจอใหญ่ให้สวยงามสมส่วนแบบมือถือ */
+        max-width: 480px;
         height: 90dvh;
         border-radius: 24px;
         border: 1px solid #e2e8f0;
@@ -187,6 +187,18 @@
             <h3 class="text-sm font-black text-slate-800 flex items-center gap-1.5"><i class="fa-solid fa-map-location-dot text-slate-400"></i> แผนกิจกรรมทริป</h3>
             <button onclick="openAddItineraryModal()" class="btn btn-xs btn-primary font-bold px-2 rounded-lg h-6 min-h-0 text-[10px]">+ เพิ่มแผน</button>
           </div>
+          
+          <!-- กล่องจัดการสมาชิกทริป -->
+          <div id="trip-members-section" class="bg-white border border-slate-200 p-3 rounded-2xl my-2 shadow-2xs shrink-0">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-black text-slate-800 flex items-center gap-1">
+                <i class="fa-solid fa-users text-primary"></i> สมาชิกในทริป
+              </span>
+              <button onclick="openAddMemberModal()" class="btn btn-xs btn-primary font-bold px-2 rounded-lg h-6 min-h-0 text-[10px]">+ เพิ่มสมาชิก</button>
+            </div>
+            <div id="trip-members-list-container" class="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto"></div>
+          </div>
+
           <div id="itinerary-day-tabs-bar" class="shrink-0"></div>
           <div id="itinerary-timeline" class="relative border-l-2 border-slate-200 pl-4 ml-2 mt-4 space-y-4"></div>
         </div>
@@ -269,6 +281,23 @@
         <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">ชื่อทริปการเดินทาง</span></label><input type="text" id="trip-title" placeholder="ทริปญี่ปุ่นหน้าร้อน 2026" class="input input-bordered w-full bg-slate-50 font-bold"></div>
         <div class="form-control"><label class="label"><span class="label-text text-xs font-bold">คำอธิบาย/รายละเอียดทริปย่อ</span></label><input type="text" id="trip-desc" placeholder="5 วัน 4 คืน เที่ยวโตเกียว-ฟูจิ" class="input input-bordered w-full bg-slate-50 font-bold"></div>
         <button onclick="handleCreateTrip(); closeBottomSheet('modal-add-trip');" class="btn btn-primary w-full font-black text-white rounded-xl mt-2 h-11 min-h-0">ยืนยันสร้างทริปกลุ่ม 🗺️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: เพิ่มสมาชิกเข้าทริป -->
+  <div id="modal-add-member" onclick="closeBottomSheet('modal-add-member')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
+    <div onclick="event.stopPropagation()" class="bg-white w-full max-w-md rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
+      <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
+      <h3 class="text-base font-black text-slate-800">➕ เพิ่มสมาชิกเข้าสู่ทริป</h3>
+      <div class="space-y-3">
+        <div class="form-control">
+          <label class="label"><span class="label-text text-xs font-bold">เลือกผู้ใช้งานจากระบบกลาง</span></label>
+          <select id="add-member-user-select" class="select select-bordered w-full bg-slate-50 font-bold text-slate-800">
+            <option value="" disabled selected>⏳ กำลังโหลดรายชื่อผู้ใช้...</option>
+          </select>
+        </div>
+        <button onclick="submitAddTripMember()" class="btn btn-primary w-full font-black text-white rounded-xl mt-2 h-11 min-h-0">ยืนยันเพิ่มสมาชิก 🎯</button>
       </div>
     </div>
   </div>
@@ -495,6 +524,19 @@
       cachedActiveTripMembersList = data.members || [];
       globalItineraryDataCached = data.itinerary || [];
 
+      // เรนเดอร์รายชื่อสมาชิกทริปปัจจุบัน
+      const membersContainer = document.getElementById("trip-members-list-container");
+      if (membersContainer) {
+        membersContainer.innerHTML = "";
+        (data.members || []).forEach(m => {
+          membersContainer.innerHTML += `
+            <div class="badge badge-outline gap-1 text-[11px] font-bold p-2 bg-slate-50 border-slate-200">
+              <span>${m.icon || '👤'} ${m.name}</span>
+              ${m.role !== 'Host' ? `<button onclick="removeTripMember('${m.id}', '${m.name}')" class="text-rose-500 hover:text-rose-700 ml-1 font-black">×</button>` : `<span class="text-[9px] text-primary font-black ml-1">(Host)</span>`}
+            </div>`;
+        });
+      }
+
       const hostBox = document.getElementById("host-approval-box");
       const pendingContainer = document.getElementById("pending-members-list");
       if (hostBox && pendingContainer) {
@@ -529,6 +571,86 @@
       }
       renderItineraryTimeline();
       reCalculateAndRenderFinancialViews();
+    }
+
+    // ฟังก์ชันตรวจสอบว่าทริปมีค่าใช้จ่ายแล้วหรือยัง
+    function checkIfTripHasExpenses() {
+      if (!globalTripData) return false;
+      const hasTab1 = (globalTripData.tab1Expenses || []).length > 0;
+      const hasTab2 = (globalTripData.tab2Deposits || []).length > 0;
+      return (hasTab1 || hasTab2);
+    }
+
+    // เปิด Modal เพิ่มสมาชิก (พร้อมเช็กเงื่อนไขล็อก)
+    function openAddMemberModal() {
+      if (checkIfTripHasExpenses()) {
+        return Swal.fire("ไม่สามารถเพิ่มสมาชิกได้", "มีรายการค่าใช้จ่ายหรือโครงการมัดจำเกิดขึ้นในทริปนี้แล้ว ระบบจึงไม่อนุญาตให้เพิ่มสมาชิกใหม่", "warning");
+      }
+
+      const select = document.getElementById("add-member-user-select");
+      select.innerHTML = `<option value="" disabled selected>เลือกสมาชิก</option>`;
+      cachedUsers.forEach(u => {
+        const isAlreadyMember = (globalTripData.members || []).some(m => m.id === u.id);
+        const isPending = (globalTripData.pendingMembers || []).some(m => m.id === u.id);
+        if (!isAlreadyMember && !isPending) {
+          select.innerHTML += `<option value="${u.id}">${u.icon || '👤'} ${u.name}</option>`;
+        }
+      });
+
+      openBottomSheet('modal-add-member');
+    }
+
+    // กดยืนยันเพิ่มสมาชิก
+    function submitAddTripMember() {
+      const userId = document.getElementById("add-member-user-select").value;
+      if (!userId) return Swal.fire("แจ้งเตือน", "กรุณาเลือกชื่อสมาชิก", "warning");
+
+      closeBottomSheet('modal-add-member');
+      Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+      callAPI(WEB_APP_URL, 'POST', { action: "addMemberToTrip", tripId: currentTripId, userId: userId })
+        .then(res => {
+          Swal.close();
+          if (res.success) {
+            enterTripDashboard(currentTripId);
+          } else {
+            Swal.fire("ล้มเหลว", res.error || "ไม่สามารถเพิ่มสมาชิกได้", "error");
+          }
+        });
+    }
+
+    // กดลบสมาชิก (พร้อมเช็กเงื่อนไขล็อก)
+    function removeTripMember(userId, userName) {
+      if (checkIfTripHasExpenses()) {
+        return Swal.fire("ไม่สามารถลบสมาชิกได้", "มีรายการค่าใช้จ่ายหรือโครงการมัดจำเกิดขึ้นในทริปนี้แล้ว ระบบจึงไม่อนุญาตให้ลบสมาชิกออก", "warning");
+      }
+
+      Swal.fire({
+        title: `ยืนยันลบ ${userName}?`,
+        text: "สมาชิกคนนี้จะถูกถอดออกจากทริป",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'ใช่, ลบออก!',
+        cancelButtonText: 'ยกเลิก',
+        customClass: {
+          confirmButton: 'btn bg-red-500 text-white font-black px-4 mx-1 border-0',
+          cancelButton: 'btn bg-slate-400 text-white font-black px-4 mx-1 border-0'
+        },
+        buttonsStyling: false
+      }).then((result) => {
+        if (result.isConfirmed) {
+          callAPI(WEB_APP_URL, 'POST', { action: "removeTripMember", tripId: currentTripId, userId: userId })
+            .then(res => {
+              if (res.success) {
+                enterTripDashboard(currentTripId);
+              } else {
+                Swal.fire("ล้มเหลว", res.error || "ไม่สามารถลบสมาชิกได้", "error");
+              }
+            });
+        }
+      });
     }
 
     function renderItineraryTimeline() { 
