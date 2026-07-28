@@ -754,15 +754,19 @@
       } 
       
       filtered.sort((a, b) => (a.time || "").localeCompare(b.time || "")).forEach(item => { 
-        const map = item.mapUrl ? `<a href="${item.mapUrl}" target="_blank" class="btn btn-sm btn-circle btn-info text-white shadow-md flex items-center justify-center w-7 h-7" style="background-color:#0284c7 !important; border:0;"><i class="fa-solid fa-location-dot text-xs"></i></a>` : ""; 
+        // เช็กเงื่อนไขแสดงปุ่ม Map ให้ถูกต้อง (ไม่ให้ปุ่มลอยซ้ำซ้อน)
+        const map = (item.mapUrl && item.mapUrl.trim() !== "") 
+          ? `<a href="${item.mapUrl}" target="_blank" class="btn btn-sm btn-circle text-white shadow-md flex items-center justify-center w-7 h-7" style="background-color:#0284c7 !important; border:0;"><i class="fa-solid fa-location-dot text-xs"></i></a>` 
+          : ""; 
+          
         const safeAct = (item.activity || "").replace(/'/g, "\\'");
         const safeLoc = (item.location || "").replace(/'/g, "\\'");
         const safeMap = (item.mapUrl || "").replace(/'/g, "\\'");
 
         itiContainer.innerHTML += `
-          <div class="relative mb-3">
+          <div class="relative mb-3" id="iti-row-${item.id}">
             <span class="absolute -left-[21px] top-1.5 bg-primary w-2 h-2 rounded-full"></span>
-            <div class="text-xs font-black text-white bg-pink px-2.5 py-0.5 rounded-md inline-block mb-1 shadow-3xs" style="background-color: #FF3483 !important;">⏰ เวลา ${item.time} น.</div>
+            <div class="text-xs font-black text-white px-2.5 py-0.5 rounded-md inline-block mb-1 shadow-3xs" style="background-color: #FF3483 !important;">⏰ เวลา ${item.time} น.</div>
             <div class="bg-slate-50 border-2 border-slate-200 p-3 rounded-2xl flex justify-between items-center shadow-3xs relative">
               <div class="min-w-0 flex-1 pr-2">
                 <div class="font-black text-base text-slate-800 truncate">${item.activity}</div>
@@ -770,15 +774,17 @@
               </div>
               <div class="shrink-0 flex items-center gap-1.5">
                 ${map}
-                <button onclick="openEditItineraryModal('${item.id}', '${item.date}', '${item.time}', '${safeAct}', '${safeLoc}', '${safeMap}')" class="btn btn-sm btn-circle btn-ghost text-slate-400 hover:text-amber-600 hover:bg-amber-50 w-7 h-7 min-h-0 flex items-center justify-center">
+                <button onclick="openEditItineraryModal('${item.id}', '${item.date}', '${item.time}', '${safeAct}', '${safeLoc}', '${safeMap}')" class="btn btn-sm btn-circle btn-ghost text-slate-400 hover:text-amber-600 hover:bg-amber-50 w-7 h-7 min-h-0 flex items-center justify-center" title="แก้ไข">
                   <i class="fa-solid fa-pen-to-square text-xs"></i>
+                </button>
+                <button onclick="deleteItineraryItem('${item.id}')" class="btn btn-sm btn-circle btn-ghost text-slate-400 hover:text-rose-600 hover:bg-rose-50 w-7 h-7 min-h-0 flex items-center justify-center" title="ลบแผน">
+                  <i class="fa-solid fa-trash-can text-xs"></i>
                 </button>
               </div>
             </div>
           </div>`; 
       }); 
     }
-
     function reCalculateAndRenderFinancialViews() {
       if (!globalTripData) return;
       const data = globalTripData;
@@ -1447,6 +1453,42 @@
       section.classList.remove("show");
     }
   });
+    // ฟังก์ชันลบแผนกิจกรรมในไทม์ไลน์
+    function deleteItineraryItem(itemId) {
+      if (window.event) window.event.stopPropagation();
+      Swal.fire({
+        title: 'ยืนยันลบแผนกิจกรรมนี้?',
+        text: "รายการกิจกรรมนี้จะถูกลบทิ้งจากแผนการเดินทาง",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'ใช่, ลบทันที!',
+        cancelButtonText: 'ยกเลิก',
+        customClass: {
+          confirmButton: 'btn bg-red-500 text-white font-black px-4 mx-1 border-0',
+          cancelButton: 'btn bg-slate-400 text-white font-black px-4 mx-1 border-0'
+        },
+        buttonsStyling: false
+      }).then((result) => {
+        if (result.isConfirmed) {
+          callAPI(WEB_APP_URL, 'POST', { action: "deleteItinerary", tripId: currentTripId, id: itemId })
+            .then(res => {
+              if (res.success) {
+                silentSyncFinancialData();
+                callAPI(`${WEB_APP_URL}?action=getTripFinancialData&tripId=${currentTripId}`).then(data => {
+                  if(data && data.success) {
+                    globalTripData = data;
+                    renderFullDashboardUI();
+                  }
+                });
+              } else {
+                Swal.fire("ล้มเหลว", res.error || "ไม่สามารถลบกิจกรรมได้", "error");
+              }
+            });
+        }
+      });
+    }
   </script>
   <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').then(() => console.log('PWA OK')); }</script>
 </body>
