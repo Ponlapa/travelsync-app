@@ -620,8 +620,11 @@
         });
       });
 
-      let safeTotalCost = (data.tab1Expenses || []).reduce((acc, curr) => acc + (parseFloat(curr.totalAmount) || 0), 0);
-      document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined, {minimumFractionDigits:2})} บาท`;
+      let safeTotalCost = (data.totalTripExpense !== undefined && data.totalTripExpense !== null) 
+  ? parseFloat(data.totalTripExpense) 
+  : (data.tab4Report || []).reduce((acc, curr) => acc + (parseFloat(curr.paid) || 0), 0);
+
+document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.toLocaleString(undefined,{minimumFractionDigits:2})} บาท`;
 
       // TAB 1
       const t1Container = document.getElementById("tab1-list-container"); 
