@@ -601,9 +601,13 @@
       };
 
       const getMemberIdFromSplit = (item) => {
-        if (typeof item === 'string') return item;
-        return item ? (item.userId || item.id || item.memberId || item.user_id) : null;
-      };
+  let rawId = "";
+  if (typeof item === 'string') rawId = item;
+  else if (item) rawId = item.userId || item.id || item.memberId || item.user_id || "";
+  
+  // ลบพวกวงเล็บ [ ] และอัญประกาศ " ออกให้หมด
+  return String(rawId).replace(/[^a-zA-Z0-9_-]/g, "");
+};
 
       const summaryMap = (data.members || []).reduce((acc, curr) => { acc[curr.id] = 0; return acc; }, {});
 
