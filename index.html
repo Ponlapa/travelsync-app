@@ -22,13 +22,22 @@
       display: flex; justify-content: center; align-items: center;
     }
     .app-container {
-      width: 100%; max-width: 412px;  
+      width: 100%; 
+      max-width: 100%; /* 👈 ยืดหยุ่นเต็มจออุปกรณ์มือถือ */
       height: 100dvh; 
       background-color: #ffffff;
       display: flex; flex-direction: column;
       position: relative;
       box-shadow: 0 4px 20px rgba(0,0,0,0.05);
       overflow: hidden; box-sizing: border-box;
+    }
+    @media (min-width: 640px) {
+      .app-container {
+        max-width: 480px; /* จำกัดความกว้างบนจอใหญ่ให้สวยงามสมส่วนแบบมือถือ */
+        height: 90dvh;
+        border-radius: 24px;
+        border: 1px solid #e2e8f0;
+      }
     }
     .hidden { display: none !important; }
     #view-login {
@@ -57,7 +66,6 @@
       padding: 16px; box-sizing: border-box;
     }
     
-    /* 🎨 OVERRIDE PALETTE THEME (Cyan, Purple, Pink, Yellow) */
     :root {
       --color-cyan: #00E0BA;
       --color-purple: #91008D;
@@ -241,7 +249,7 @@
 
   <!-- MODALS SECTION -->
   <div id="modal-register-user" onclick="closeBottomSheet('modal-register-user')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
-    <div onclick="event.stopPropagation()" class="bg-white w-full max-w-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
+    <div onclick="event.stopPropagation()" class="bg-white w-full max-w-md rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
       <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
       <h3 class="text-base font-black text-slate-800">✨ สมัครสร้างโปรไฟล์ผู้ใช้ใหม่</h3>
       <div class="space-y-3">
@@ -254,7 +262,7 @@
   </div>
 
   <div id="modal-add-trip" onclick="closeBottomSheet('modal-add-trip')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
-    <div onclick="event.stopPropagation()" class="bg-white w-full max-w-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
+    <div onclick="event.stopPropagation()" class="bg-white w-full max-w-md rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
       <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
       <h3 class="text-base font-black text-slate-800">🚀 สร้างทริปการเดินทางใหม่</h3>
       <div class="space-y-3">
@@ -266,7 +274,7 @@
   </div>
 
   <div id="modal-add-itinerary" onclick="closeBottomSheet('modal-add-itinerary')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
-    <div onclick="event.stopPropagation()" class="bg-white w-full max-w-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
+    <div onclick="event.stopPropagation()" class="bg-white w-full max-w-md rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl">
       <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
       <h3 id="iti-modal-title" class="text-base font-black text-slate-800">📌 เพิ่มกิจกรรมลงบนแผนการเดินทาง</h3>
       <input type="hidden" id="iti-edit-id" value="">
@@ -284,7 +292,7 @@
   </div>
 
   <div id="modal-add-tab1" onclick="closeBottomSheet('modal-add-tab1')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
-    <div onclick="event.stopPropagation()" class="bg-white w-full max-w-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl max-h-[85%] overflow-y-auto">
+    <div onclick="event.stopPropagation()" class="bg-white w-full max-w-md rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl max-h-[85%] overflow-y-auto">
       <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
       <h3 class="text-base font-black text-slate-800">💰 ลงบันทึกค่าใช้จ่ายทั่วไป (รายบิล)</h3>
       <div class="space-y-3">
@@ -332,7 +340,7 @@
   </div>
 
   <div id="modal-add-tab2-master" onclick="closeBottomSheet('modal-add-tab2-master')" class="fixed inset-0 bg-black/40 z-50 flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
-    <div onclick="event.stopPropagation()" class="bg-white w-full max-w-[412px] rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl max-h-[85%] overflow-y-auto">
+    <div onclick="event.stopPropagation()" class="bg-white w-full max-w-md rounded-t-3xl p-5 space-y-4 transform translate-y-full transition-transform duration-300 shadow-2xl max-h-[85%] overflow-y-auto">
       <div class="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-1"></div>
       <h3 class="text-base font-black text-slate-800">🏨 เปิดโครงการค่าใช้จ่ายที่มีการมัดจำ</h3>
       <div class="space-y-3">
@@ -350,9 +358,8 @@
     </div>
   </div>
 
-  <!-- MODAL: TAB 2 FINAL PAYMENT (รวมเป็นจุดเดียวและถูกต้อง) -->
   <div id="modal-add-tab2-final" class="fixed inset-0 bg-black/60 z-50 hidden flex items-end sm:items-center justify-center transition-opacity duration-300 opacity-0">
-    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-5 transform translate-y-full transition-transform duration-300 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 transform translate-y-full transition-transform duration-300 shadow-2xl max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4">
         <h3 class="font-black text-slate-800 text-base">🏨 อัพเดทจ่ายเงินงวดสุดท้ายหน้างาน</h3>
         <button type="button" onclick="closeBottomSheet('modal-add-tab2-final')" class="btn btn-sm btn-circle btn-ghost text-slate-400 font-bold">✕</button>
@@ -651,10 +658,9 @@
               return `<div class="text-[11px] text-slate-600 font-bold pl-4 border-l-2 border-slate-200">${displayName} ${d.isTarget?'🎯 ร่วมหาร':''} ➔ มัดจำเดิม: ฿${parseFloat(d.deposit || 0).toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`;
             }).join("");
 
-            // ใช้ชื่อฟังก์ชัน openFinalPaymentManager เป็นมาตรฐานเดียวกัน
             let actionBtn = h.status === "Awaiting_Final" 
               ? `<button id="btn-final-t2-${h.depId}" onclick="event.stopPropagation(); openFinalPaymentManager('${h.depId}', '${h.note.replace(/'/g, "\\'")}', ${h.fullCost}, ${h.totalDeposit})" class="btn btn-xs btn-primary font-bold h-6 min-h-0 text-[10px] px-2 rounded-lg">อัพเดทจ่ายเงิน 🏨</button>` 
-              : `<span class="badge badge-neutral text-[9px] font-black p-1.5 h-5">${h.status === "Ready_To_Settle" ? "จ่ายเรียบร้อย" : "ปิดโครงการ"}</span>`;
+              : `<span class="badge badge-neutral text-[9px] font-black p-1.5 h-5">${h.status === "Ready_To_Settle" ? "รอเคลียร์หนี้" : "ปิดโครงการ"}</span>`;
 
             t2Container.innerHTML += `
               <div id="tab2-row-${h.depId}" class="w-full mb-2 bg-slate-50 border border-slate-200 rounded-xl overflow-hidden relative">
@@ -1042,7 +1048,6 @@
         .then(() => silentSyncFinancialData());
     }
 
-    // ฟังก์ชันเปิด Modal อัพเดทจ่ายเงินงวดสุดท้ายของ Tab 2
     function openFinalPaymentManager(depId, note, fullCost, totalDeposit) {
       if (window.event) window.event.stopPropagation();
       document.getElementById("t2-final-depid").value = depId;
@@ -1061,7 +1066,6 @@
       openBottomSheet("modal-add-tab2-final");
     }
 
-    // ฟังก์ชันกดส่งข้อมูลอัพเดทจ่ายเงินงวดสุดท้ายเพื่อเปลี่ยนสถานะเป็น Ready_To_Settle
     function submitTab2FinalPayment() {
       const depId = document.getElementById("t2-final-depid").value;
       const payerId = document.getElementById("t2-final-payer-select").value;
