@@ -108,6 +108,43 @@
       scrollbar-width: none;
     }
     #itinerary-day-tabs-bar::-webkit-scrollbar { display: none; }
+    /* 🎨 CSS สำหรับ Popup เมนูซ่อนปุ่มแบบกลืนพื้นหลังและเปลี่ยนสีเมื่อ Hover */
+  .trip-menu-dropdown {
+    position: relative;
+    display: inline-block;
+  }
+  .trip-menu-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: #ffffff;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px rgba(0,0,0,0.1);
+    border-radius: 12px;
+    z-index: 50;
+    border: 1px solid #e2e8f0;
+    padding: 4px;
+  }
+  .trip-menu-dropdown:hover .trip-menu-content {
+    display: block;
+  }
+  /* ปุ่มในเมนูสีกลืนพื้นหลัง และเปลี่ยนสีเมื่อเอาเมาส์ชี้ (Hover) */
+  .trip-menu-item {
+    background-color: transparent !important;
+    color: #475569 !important;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: bold;
+    border-radius: 8px;
+    border: none;
+    transition: all 0.2s;
+  }
+  .trip-menu-item:hover {
+    background-color: #f1f5f9 !important;
+    color: #00E0BA !important;
+  }
   </style>
 </head>
 <body>
@@ -184,9 +221,28 @@
         <!-- SUB VIEW: ITINERARY -->
         <div id="sub-view-itinerary" class="hidden">
           <div class="flex justify-between items-center mb-1 shrink-0">
-            <h3 class="text-sm font-black text-slate-800 flex items-center gap-1.5"><i class="fa-solid fa-map-location-dot text-slate-400"></i> แผนกิจกรรมทริป</h3>
-            <button onclick="openAddItineraryModal()" class="btn btn-xs btn-primary font-bold px-2 rounded-lg h-6 min-h-0 text-[10px]">+ เพิ่มแผน</button>
-          </div>
+  <h3 class="text-sm font-black text-slate-800 flex items-center gap-1.5">
+    <i class="fa-solid fa-map-location-dot text-slate-400"></i> แผนกิจกรรมทริป
+  </h3>
+  
+  <div class="flex items-center gap-2">
+    <!-- 📍 จุดที่วงกลมไว้: ปุ่ม Popup เมนูซ่อน (สีกลืนพื้นหลัง โชว์เมื่อเอาเมาส์ชี้) -->
+    <div class="trip-menu-dropdown">
+      <button class="btn btn-xs bg-transparent border-0 text-slate-400 hover:text-slate-700 hover:bg-slate-100 font-bold px-2 rounded-lg h-6 min-h-0 text-[10px]">
+        <i class="fa-solid fa-ellipsis-vertical"></i> เมนูจัดการ
+      </button>
+      <div class="trip-menu-content">
+        <button onclick="openAddMemberModal()" class="trip-menu-item">
+          <i class="fa-solid fa-user-plus mr-1.5"></i> เพิ่มสมาชิก
+        </button>
+        <!-- สามารถเพิ่มเมนูอื่นๆ ใน Popup ตรงนี้ได้อีก -->
+      </div>
+    </div>
+
+    <!-- ปุ่มเพิ่มแผนเดิม -->
+    <button onclick="openAddItineraryModal()" class="btn btn-xs btn-primary font-bold px-2 rounded-lg h-6 min-h-0 text-[10px]">+ เพิ่มแผน</button>
+  </div>
+</div>
           
           <!-- กล่องจัดการสมาชิกทริป -->
           <div id="trip-members-section" class="bg-white border border-slate-200 p-3 rounded-2xl my-2 shadow-2xs shrink-0">
