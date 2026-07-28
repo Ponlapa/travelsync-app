@@ -763,49 +763,27 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
       const t4Container = document.getElementById("tab4-list-container"); 
       if (t4Container) {
         t4Container.innerHTML = "";
-        (data.members || []).forEach(m => {
-          let personTotalExpense = 0;
+        
+        // ดึงรายงานที่รวม Tab 1 + Tab 2 มาเรียบร้อยแล้วจาก data.tab4Report
+        const reports = data.tab4Report || [];
+        
+        if (reports.length === 0) {
+          t4Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบข้อมูลสรุปรายบุคคล</div>`;
+        } else {
+          reports.forEach(item => {
+            // ค้นหา icon ของสมาชิกมาแสดงผล
+            const memberObj = (data.members || []).find(m => m.id === item.id) || {};
+            const icon = memberObj.icon || '👤';
+            const personTotalExpense = parseFloat(item.paid) || 0;
 
-          (data.tab1Expenses || []).forEach(exp => {
-            let splitsArr = parseIfNeeded(exp.splits);
-            let totalAmt = parseFloat(exp.totalAmount) || 0;
-            let splitsCount = splitsArr.length || 1;
-            let defaultShare = totalAmt / splitsCount;
-
-            splitsArr.forEach(s => {
-              let mId = getMemberIdFromSplit(s);
-              if (mId === m.id) {
-                let shareAmt = (typeof s === 'object' && s.share !== undefined) ? parseFloat(s.share) : defaultShare;
-                personTotalExpense += shareAmt;
-              }
-            });
+            t4Container.innerHTML += `
+              <div class="flex justify-between items-center p-3.5 mb-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+                <span class="text-slate-800">${icon} ${item.name}</span>
+                <span class="text-primary font-black text-sm">ค่าใช้จ่ายรวม: ฿${personTotalExpense.toLocaleString(undefined,{minimumFractionDigits:2})} บาท</span>
+              </div>`;
           });
-
-          (data.tab2Deposits || []).forEach(dep => {
-            let detailsArr = parseIfNeeded(dep.details);
-            let fullCost = parseFloat(dep.fullCost) || 0;
-            
-            // นับจำนวนคนที่ติ๊ก joint/target จริงๆ ในบิลนั้น (ป้องกันค่าเป็น 0 หรือ undefined)
-            let actualTargetsCount = detailsArr.filter(d => d.isTarget).length || detailsArr.length || 1;
-            let sharePerHead = fullCost / actualTargetsCount;
-
-            detailsArr.forEach(d => {
-              let mId = getMemberIdFromSplit(d);
-              if (mId === m.id && d.isTarget) {
-                let shareAmt = d.expectedShare > 0 ? d.expectedShare : sharePerHead;
-                personTotalExpense += parseFloat(shareAmt) || 0;
-              }
-            });
-          });
-
-          t4Container.innerHTML += `
-            <div class="flex justify-between items-center p-3.5 mb-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
-              <span class="text-slate-800">${m.icon || '👤'} ${m.name}</span>
-              <span class="text-primary font-black text-sm">ค่าใช้จ่ายรวม: ฿${personTotalExpense.toLocaleString(undefined,{minimumFractionDigits:2})} บาท</span>
-            </div>`;
-        });
+        }
       }
-    } // 👈 ปิดวงเล็บปีกกาของฟังก์ชัน reCalculateAndRenderFinancialViews ให้ครบถ้วนตรงนี้
 
     function silentSyncFinancialData() {
       if (!currentTripId) return;
