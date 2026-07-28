@@ -638,9 +638,12 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
             let splitsCount = (h.splits || []).length || 1;
             let defaultShare = totalAmt / splitsCount;
 
-            let splitsHtml = (h.splits || []).map(s => {
+           et splitsHtml = (h.splits || []).map(s => {
               let mId = getMemberIdFromSplit(s);
-              let displayName = (typeof s === 'object' && s.name) ? s.name : getMemberName(mId);
+              // เช็คทั้ง s.name, การดึงจาก Map, และค่า mId โดยตรง
+              let displayName = (typeof s === 'object' && s.name && !s.name.includes("ไม่ระบุชื่อ")) 
+                ? s.name 
+                : getMemberName(mId);
               let shareAmt = (typeof s === 'object' && s.share !== undefined) ? parseFloat(s.share) : defaultShare;
               return `<div class="text-[11px] text-slate-600 font-bold pl-4 border-l-2 border-slate-200">${displayName} ➔ ภาระ: ฿${shareAmt.toLocaleString(undefined,{minimumFractionDigits:2})} บ.</div>`;
             }).join("");
