@@ -125,26 +125,6 @@
     border: 1px solid #e2e8f0;
     padding: 4px;
   }
-  .trip-menu-dropdown:hover .trip-menu-content {
-    display: block;
-  }
-  /* ปุ่มในเมนูสีกลืนพื้นหลัง และเปลี่ยนสีเมื่อเอาเมาส์ชี้ (Hover) */
-  .trip-menu-item {
-    background-color: transparent !important;
-    color: #475569 !important;
-    width: 100%;
-    text-align: left;
-    padding: 8px 12px;
-    font-size: 11px;
-    font-weight: bold;
-    border-radius: 8px;
-    border: none;
-    transition: all 0.2s;
-  }
-  .trip-menu-item:hover {
-    background-color: #f1f5f9 !important;
-    color: #00E0BA !important;
-  }
     .member-dropdown-panel {
     display: none;
     position: absolute;
@@ -163,6 +143,36 @@
     display: block;
   }
   /* ปุ่มไอคอนรูปคน กลืนกับพื้นหลัง และเปลี่ยนสีเมื่อเอาเมาส์ชี้ */
+  .trip-icon-btn {
+    background-color: transparent !important;
+    border: none !important;
+    color: #94a3b8 !important;
+    transition: all 0.2s ease;
+  }
+  .trip-icon-btn:hover {
+    color: #00E0BA !important;
+    background-color: #f8fafc !important;
+  }
+    /* 📍 เก็บไว้: ควบคุมกล่อง Box สมาชิกที่เด้งขึ้นมา */
+  #trip-members-section {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    width: 320px;
+    background-color: #ffffff;
+    box-shadow: 0px 10px 25px rgba(0,0,0,0.12);
+    border-radius: 16px;
+    z-index: 50;
+    border: 1px solid #e2e8f0;
+    padding: 12px;
+    margin-top: 6px;
+  }
+  #trip-members-section.show {
+    display: block;
+  }
+  
+  /* 📍 เก็บไว้: ปุ่มไอคอนรูปเฟือง/คน */
   .trip-icon-btn {
     background-color: transparent !important;
     border: none !important;
@@ -254,17 +264,21 @@
   </h3>
   
   <div class="flex items-center gap-1">
-    <!-- 📍 ปุ่มไอคอนรูปคน/เฟือง กดเพื่อ Show / Hide เมนูจัดการสมาชิก -->
+    <!-- 📍 ปุ่มไอคอนรูปคน/เฟือง และกล่อง Box สมาชิกที่จะเด้งขึ้นมา -->
     <div class="relative">
       <button onclick="toggleMemberMenu(event)" class="btn btn-xs btn-circle trip-icon-btn w-7 h-7 min-h-0 flex items-center justify-center">
         <i class="fa-solid fa-user-gear text-xs"></i>
       </button>
       
-      <!-- แถบ Popup เมนูที่จะแสดงเมื่อกดไอคอน -->
-      <div id="member-action-panel" class="member-dropdown-panel">
-        <button onclick="openAddMemberModal(); toggleMemberMenu(event);" class="btn btn-xs btn-ghost w-full justify-start text-slate-700 hover:text-primary hover:bg-slate-50 font-bold text-xs gap-2">
-          <i class="fa-solid fa-user-plus"></i> เพิ่มสมาชิก
-        </button>
+      <!-- Box สสมาชิกอันเดิมถูกย้ายมาซ่อนไว้ในนี้ และจะเด้งโชว์ขึ้นมาเมื่อกดปุ่ม -->
+      <div id="trip-members-section" class="shadow-2xl">
+        <div class="flex justify-between items-center mb-2 border-b border-slate-100 pb-2">
+          <span class="text-xs font-black text-slate-800 flex items-center gap-1">
+            <i class="fa-solid fa-users text-primary"></i> สมาชิกในทริป
+          </span>
+          <button onclick="openAddMemberModal()" class="btn btn-xs btn-primary font-bold px-2 rounded-lg h-6 min-h-0 text-[10px]">+ เพิ่มสมาชิก</button>
+        </div>
+        <div id="trip-members-list-container" class="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto"></div>
       </div>
     </div>
 
@@ -1428,19 +1442,20 @@
       const target = document.getElementById(viewId); if (target) { target.classList.remove("hidden"); target.style.display = "flex"; }
       if(viewId === "view-dashboard" && nav) { nav.classList.remove("hidden"); }
     }
-    function toggleMemberMenu(event) {
+    // ฟังก์ชันสลับเปิด/ปิด Box สมาชิกทริป (Show / Hide)
+  function toggleMemberMenu(event) {
     if (window.event) window.event.stopPropagation();
-    const panel = document.getElementById("member-action-panel");
-    if (panel) {
-      panel.classList.toggle("show");
+    const section = document.getElementById("trip-members-section");
+    if (section) {
+      section.classList.toggle("show");
     }
   }
 
-  // กดคลิกพื้นที่ว่างที่อื่นเพื่อปิด Popup อัตโนมัติ
+  // คลิกพื้นที่ว่างด้านนอกเพื่อปิด Box อัตโนมัติ
   window.addEventListener("click", function() {
-    const panel = document.getElementById("member-action-panel");
-    if (panel && panel.classList.contains("show")) {
-      panel.classList.remove("show");
+    const section = document.getElementById("trip-members-section");
+    if (section && section.classList.contains("show")) {
+      section.classList.remove("show");
     }
   });
   </script>
