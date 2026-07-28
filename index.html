@@ -772,15 +772,12 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
       const t4Container = document.getElementById("tab4-list-container"); 
       if (t4Container) {
         t4Container.innerHTML = "";
-        
-        // ดึงรายงานที่รวม Tab 1 + Tab 2 มาเรียบร้อยแล้วจาก data.tab4Report
         const reports = data.tab4Report || [];
         
         if (reports.length === 0) {
           t4Container.innerHTML = `<div class="text-center py-6 text-xs text-slate-400 font-bold bg-slate-50 rounded-xl border border-dashed">ไม่พบข้อมูลสรุปรายบุคคล</div>`;
         } else {
           reports.forEach(item => {
-            // ค้นหา icon ของสมาชิกมาแสดงผล
             const memberObj = (data.members || []).find(m => m.id === item.id) || {};
             const icon = memberObj.icon || '👤';
             const personTotalExpense = parseFloat(item.paid) || 0;
@@ -793,6 +790,7 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
           });
         }
       }
+    }
 
     function silentSyncFinancialData() {
       if (!currentTripId) return;
@@ -1338,9 +1336,6 @@ document.getElementById("cost-total-display").innerText = `฿${safeTotalCost.to
       if(viewId === "view-dashboard" && nav) { nav.classList.remove("hidden"); }
     }
   </script>
-  <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').then(() => console.log('PWA OK')); }</script>
-</body>
-</html>
   <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').then(() => console.log('PWA OK')); }</script>
 </body>
 </html>
