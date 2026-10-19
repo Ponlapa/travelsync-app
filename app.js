@@ -11,6 +11,7 @@ const APP_ENV = (typeof location !== 'undefined' && new URLSearchParams(location
 const WEB_APP_URL = BACKENDS[APP_ENV];
 const APP_CLIENT_VERSION = 2;
 const SESSION_KEY = "travelsync_session";
+const USERS_KEY = "travelsync_users";   // login list from the last visit, shown before Google answers
 
 let sessionToken = "";
 let currentUser = null;
@@ -149,17 +150,38 @@ function runWrite(action, payload, after) {
   }).catch(quiet);
 }
 
+// ---------- phone storage ----------
+// localStorage survives closing a home-screen app (sessionStorage does not on iOS). Blocked storage
+// (private mode) throws: the app then works from memory only.
+function storageGet(key) {
+  try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; }
+}
+
+function storageSet(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* memory only */ }
+}
+
+function storageRemove(key) {
+  try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
+}
+
 // ---------- session ----------
+// The server keeps a session 6 h after its last use; an older saved token gets AUTH → back to login.
 function saveSession(token, user) {
   sessionToken = token;
   currentUser = user;
-  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ token, user })); } catch (e) { /* private mode: memory only */ }
+  storageSet(SESSION_KEY, { token, user });
+}
+
+function loadSavedSession() {
+  const saved = storageGet(SESSION_KEY);
+  return saved && saved.token && saved.user ? saved : null;
 }
 
 function clearSession() {
   sessionToken = '';
   currentUser = null;
-  try { sessionStorage.removeItem(SESSION_KEY); } catch (e) { /* ignore */ }
+  storageRemove(SESSION_KEY);
 }
 
 function onSessionExpired(message) {
@@ -172,29 +194,43 @@ function onSessionExpired(message) {
 
 window.addEventListener('DOMContentLoaded', function () {
   if (APP_ENV === 'staging') document.title = '[TEST] ' + document.title;
-  loadInitialUserData();
-  let saved = null;
-  try { saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { saved = null; }
-  if (saved && saved.token && saved.user) {
+  const saved = loadSavedSession();
+  if (saved) {
     saveSession(saved.token, saved.user);
     switchToView('view-trips');
     renderTripsList();
   }
+  loadInitialUserData();
 });
 
+// Fills the login dropdown; a name the user already picked stays picked.
+function renderUserSelect(users) {
+  cachedUsers = users;
+  const select = document.getElementById('login-user-select');
+  const picked = select.value;
+  select.innerHTML = `<option value="" disabled selected>เลือกโปรไฟล์ผู้ใช้ของตนเอง</option>` +
+    users.map((u) => `<option value="${escapeHtml(u.id)}">${memberLabel(u)}</option>`).join('');
+  if (picked && users.some((u) => u.id === picked)) select.value = picked;
+}
+
+// Shows the list from the last visit at once, then refreshes it (that call also wakes the Google script).
 function loadInitialUserData() {
+  const saved = storageGet(USERS_KEY);
+  if (Array.isArray(saved) && saved.length) {
+    renderUserSelect(saved);
+    if (!currentUser) switchToView('view-login');
+  }
   fetch(`${WEB_APP_URL}?action=getAllUsers`)
     .then((r) => r.json())
     .then((usersList) => {
-      cachedUsers = Array.isArray(usersList) ? usersList : [];
-      const select = document.getElementById('login-user-select');
-      select.innerHTML = `<option value="" disabled selected>เลือกโปรไฟล์ผู้ใช้ของตนเอง</option>`;
-      cachedUsers.forEach((u) => { select.innerHTML += `<option value="${escapeHtml(u.id)}">${memberLabel(u)}</option>`; });
+      if (!Array.isArray(usersList)) throw new Error('not a user list');
+      storageSet(USERS_KEY, usersList);
+      renderUserSelect(usersList);
       if (!currentUser) switchToView('view-login');
     })
     .catch(() => {
       if (!currentUser) switchToView('view-login');
-      Swal.fire({ title: 'โหลดรายชื่อไม่ได้', text: 'กรุณาตรวจสอบอินเทอร์เน็ตแล้วเปิดแอปใหม่', icon: 'error' });
+      if (!cachedUsers.length) Swal.fire({ title: 'โหลดรายชื่อไม่ได้', text: 'กรุณาตรวจสอบอินเทอร์เน็ตแล้วเปิดแอปใหม่', icon: 'error' });
     });
 }
 
