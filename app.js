@@ -12,11 +12,16 @@ const WEB_APP_URL = BACKENDS[APP_ENV];
 const APP_CLIENT_VERSION = 2;
 const SESSION_KEY = "travelsync_session";
 const USERS_KEY = "travelsync_users";   // login list from the last visit, shown before Google answers
+const TRIP_KEY = "travelsync_trip_";    // + userId_tripId: last trip data, shown while the fresh one loads
+const TRIP_STALE_MS = 30000;            // back in the app after this long → reload the open trip
 
 let sessionToken = "";
 let currentUser = null;
 let currentTripId = null;
 let globalTripData = null;
+let tripDataFresh = false;     // false while a saved copy is shown and Google has not answered yet
+let tripLoadedAt = 0;          // when globalTripData last came from Google
+let tripRefresh = null;        // the reload in flight (one at a time)
 let cachedUsers = [];
 let activeSelectedDayDate = "";
 let activeCurrentFinTabIdx = 1;
@@ -143,6 +148,11 @@ function quiet(err) {
 // `after`) is in. Google can take 30 s+; without the cover people tap save again, which is a new request
 // and a second bill. A failure / uncertain answer replaces the cover with its own alert.
 function runWrite(action, payload, after) {
+  // A saved copy of the trip is on screen: wait for the fresh one, so nobody saves from old numbers.
+  if (currentTripId && !tripDataFresh) {
+    refreshTrip().catch(quiet);
+    return Swal.fire({ title: 'กำลังอัปเดตข้อมูล', text: 'รอสักครู่ให้ข้อมูลล่าสุดขึ้นก่อน แล้วกดบันทึกอีกครั้ง', icon: 'info' });
+  }
   showLoading('กำลังบันทึก...');
   return api(action, payload, { write: true }).then((res) => {
     if (!reportSaveResult(res)) return;
@@ -163,6 +173,14 @@ function storageSet(key, value) {
 
 function storageRemove(key) {
   try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
+}
+
+function storageRemovePrefix(prefix) {
+  try {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+    keys.filter((k) => k && k.startsWith(prefix)).forEach(storageRemove);
+  } catch (e) { /* ignore */ }
 }
 
 // ---------- session ----------
@@ -312,6 +330,7 @@ function submitForgotPin() {
 }
 
 function backToLogin() {
+  storageRemovePrefix(TRIP_KEY);       // log out = nothing of the trips stays on the phone
   clearSession();
   globalTripData = null;
   currentTripId = null;
@@ -397,28 +416,111 @@ function isHost() {
   return !!(globalTripData && globalTripData.me && globalTripData.me.role === 'Host');
 }
 
+function tripKey(tripId) {
+  return `${TRIP_KEY}${currentUser ? currentUser.id : ''}_${tripId}`;
+}
+
+// Saved copy on the phone → shown at once and refreshed ("กำลังอัปเดต" line). First visit → progress popup.
 function enterTripDashboard(tripId) {
   currentTripId = tripId;
-  showLoading('กำลังโหลดข้อมูลทริป...');
-  api('getTripFinancialData', { tripId }).then((data) => {
-    Swal.close();
-    if (!reportSaveResult(data)) { currentTripId = null; return; }
-    globalTripData = data;
+  tripDataFresh = false;
+  const saved = storageGet(tripKey(tripId));
+  if (saved && saved.success) {
+    globalTripData = saved;
     renderFullDashboardUI();
     switchToView('view-dashboard');
     switchMainTab('iti');
-  }).catch(quiet);
+    refreshTrip().catch(quiet);
+    return;
+  }
+  const progress = showTripProgress();
+  api('getTripFinancialData', { tripId }).then((data) => {
+    progress.stop();
+    if (tripId !== currentTripId) return;
+    if (!reportSaveResult(data)) { currentTripId = null; return; }
+    Swal.close();
+    applyTripData(data);
+    switchToView('view-dashboard');
+    switchMainTab('iti');
+  }).catch((e) => {
+    progress.stop();
+    if (tripId === currentTripId) currentTripId = null;   // never entered: the trip list must not stay "in a trip"
+    quiet(e);
+  });
 }
 
-// Reloads the whole trip (itinerary + money).
+function applyTripData(data) {
+  globalTripData = data;
+  tripDataFresh = true;
+  tripLoadedAt = Date.now();
+  storageSet(tripKey(currentTripId), data);
+  renderFullDashboardUI();
+}
+
+// Reloads the open trip (itinerary + money); a second call while one runs gets the same promise.
+function refreshTrip() {
+  if (tripRefresh) return tripRefresh;
+  const tripId = currentTripId;
+  if (!tripId) return Promise.resolve();
+  setTripUpdating(true);
+  tripRefresh = api('getTripFinancialData', { tripId }).then((data) => {
+    if (tripId !== currentTripId) return;
+    if (data && data.success) return applyTripData(data);
+    storageRemove(tripKey(tripId));     // e.g. removed from the trip
+    reportSaveResult(data);
+    backToTrips();
+  }).finally(() => {
+    tripRefresh = null;
+    if (tripId === currentTripId) setTripUpdating(false);
+  });
+  return tripRefresh;
+}
+
+// After a save: same reload, errors already shown by api().
 function reloadTripDashboard() {
-  if (!currentTripId) return Promise.resolve();
-  return api('getTripFinancialData', { tripId: currentTripId }).then((data) => {
-    if (data && data.success) {
-      globalTripData = data;
-      renderFullDashboardUI();
-    }
-  }).catch(quiet);
+  return refreshTrip().catch(quiet);
+}
+
+// Back in the app (phone unlocked / switched back) with old trip data on screen → reload it.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !currentTripId || !globalTripData) return;
+  if (Date.now() - tripLoadedAt > TRIP_STALE_MS) refreshTrip().catch(quiet);
+});
+
+// A1: popup with an estimated percentage — Google gives no real progress, so it creeps towards 90 %
+// (about 57 % at 8 s, 86 % at 24 s) and the popup closes when the answer is in.
+function showTripProgress() {
+  const t0 = Date.now();
+  Swal.fire({
+    title: 'กำลังโหลดข้อมูลทริป...', showConfirmButton: false, allowOutsideClick: false,
+    html: `<div class="trip-progress"><div id="trip-progress-bar" class="trip-progress-fill" style="width:3%"></div></div>
+      <div id="trip-progress-pct" class="trip-progress-pct">3%</div>
+      <div class="trip-progress-note">ครั้งแรกอาจใช้เวลา 10-30 วินาที</div>`
+  });
+  const timer = setInterval(() => {
+    const box = Swal.getHtmlContainer();
+    const bar = box && box.querySelector('#trip-progress-bar');
+    if (!bar) return clearInterval(timer);            // popup replaced (error, other message)
+    const pct = Math.max(3, Math.round(90 * (1 - Math.exp(-(Date.now() - t0) / 10000))));
+    bar.style.width = pct + '%';
+    box.querySelector('#trip-progress-pct').innerText = pct + '%';
+  }, 250);
+  return { stop: () => clearInterval(timer) };
+}
+
+// B1: running line under the trip title + "กำลังอัปเดต..." in place of the dates.
+let tripUpdating = false;
+function setTripUpdating(on) {
+  tripUpdating = on;
+  document.getElementById('dash-updating-line').classList.toggle('hidden', !on);
+  renderTripDatesLine();
+}
+
+function renderTripDatesLine() {
+  const el = document.getElementById('dash-trip-dates');
+  const trip = (globalTripData && globalTripData.trip) || {};
+  el.innerText = tripUpdating ? '🔄 กำลังอัปเดตข้อมูลล่าสุด...' : `📅 ${formatDateRange(trip.startDate, trip.endDate)}`;
+  el.classList.toggle('dash-updating-text', tripUpdating);
 }
 
 function renderFullDashboardUI() {
@@ -426,7 +528,7 @@ function renderFullDashboardUI() {
   const data = globalTripData;
   const trip = data.trip || {};
   document.getElementById('dash-trip-title').innerText = trip.title || 'ทริป';
-  document.getElementById('dash-trip-dates').innerText = `📅 ${formatDateRange(trip.startDate, trip.endDate)}`;
+  renderTripDatesLine();
   document.getElementById('dash-edit-dates-btn').classList.toggle('hidden', !isHost());
   document.getElementById('add-member-btn').classList.toggle('hidden', !isHost());
 
@@ -964,6 +1066,8 @@ function closeBottomSheet(id) {
 function backToTrips() {
   currentTripId = null;
   globalTripData = null;
+  tripDataFresh = false;
+  setTripUpdating(false);
   switchToView('view-trips');
   renderTripsList();
 }

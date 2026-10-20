@@ -4,8 +4,8 @@
 //   from the last visit is shown, so a new version reaches people on the next open with normal signal.
 // - Files (app.js, CSS, fonts, icons, CDN libraries): the stored copy at once, refreshed in the background.
 // Bump CACHE together with app.js?v= in index.html; activate deletes the older caches.
-const CACHE = 'travelsync-v4';
-const SHELL = ['./', './index.html', './app.js?v=4', './tailwind.css', './manifest.json'];
+const CACHE = 'travelsync-v5';
+const SHELL = ['./', './index.html', './app.js?v=5', './tailwind.css', './manifest.json'];
 const ASSET_HOSTS = ['cdn.jsdelivr.net', 'cdnjs.cloudflare.com', 'fonts.googleapis.com', 'fonts.gstatic.com', 'img.icons8.com'];
 const PAGE_TIMEOUT_MS = 3000;
 
