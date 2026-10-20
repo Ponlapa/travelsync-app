@@ -147,12 +147,17 @@ function quiet(err) {
 // Every write goes through here: "กำลังบันทึก..." covers the screen until the answer (and the reload in
 // `after`) is in. Google can take 30 s+; without the cover people tap save again, which is a new request
 // and a second bill. A failure / uncertain answer replaces the cover with its own alert.
+// A saved copy of the trip is on screen: wait for the fresh one, so nobody saves from old numbers.
+// Returns true (and tells the user) when a save must wait.
+function holdWhileTripUpdating() {
+  if (!currentTripId || tripDataFresh) return false;
+  refreshTrip().catch(quiet);
+  Swal.fire({ title: 'กำลังอัปเดตข้อมูล', text: 'รอสักครู่ให้ข้อมูลล่าสุดขึ้นก่อน แล้วกดบันทึกอีกครั้ง', icon: 'info' });
+  return true;
+}
+
 function runWrite(action, payload, after) {
-  // A saved copy of the trip is on screen: wait for the fresh one, so nobody saves from old numbers.
-  if (currentTripId && !tripDataFresh) {
-    refreshTrip().catch(quiet);
-    return Swal.fire({ title: 'กำลังอัปเดตข้อมูล', text: 'รอสักครู่ให้ข้อมูลล่าสุดขึ้นก่อน แล้วกดบันทึกอีกครั้ง', icon: 'info' });
-  }
+  if (holdWhileTripUpdating()) return Promise.resolve();
   showLoading('กำลังบันทึก...');
   return api(action, payload, { write: true }).then((res) => {
     if (!reportSaveResult(res)) return;
@@ -733,6 +738,7 @@ function renderTab1() {
             <div class="font-black text-slate-700 mt-1 text-sm">ยอดบิล: ${money(h.totalAmount)}</div>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
+            ${attachBtnHtml('bill', h.billId, h.note)}
             <button type="button" onclick="toggleDetails(this, ${jsArg('tab1-col-' + h.billId)})" class="btn btn-xs bg-slate-200 border-0 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-[10px] px-2 min-h-0 h-6">Show 🔽</button>
             ${canDelete ? `<button type="button" onclick="deleteTab1Bill(${jsArg(h.billId)})" class="btn btn-xs btn-circle btn-error text-white border-0 bg-red-500 w-6 h-6 min-h-0 flex items-center justify-center"><i class="fa-solid fa-trash-can text-[10px]"></i></button>` : ''}
           </div>
@@ -771,6 +777,7 @@ function renderTab2() {
             <span class="text-[10px] font-bold text-slate-500 block mt-1">จ่ายวันจริง: <b class="text-slate-700">${money(h.remaining)}</b></span>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
+            ${attachBtnHtml('deposit', h.depId, h.note)}
             <button type="button" onclick="toggleDetails(this, ${jsArg('tab2-col-' + h.depId)})" class="btn btn-xs bg-slate-200 border-0 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-[10px] px-2 min-h-0 h-6">Show 🔽</button>
             ${canDelete ? `<button type="button" onclick="deleteTab2Bill(${jsArg(h.depId)})" class="btn btn-xs btn-circle btn-error text-white border-0 bg-red-500 w-6 h-6 min-h-0 flex items-center justify-center"><i class="fa-solid fa-trash-can text-[10px]"></i></button>` : ''}
           </div>
@@ -821,7 +828,10 @@ function renderTab3() {
       return `
         <div class="flex justify-between items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-bold">
           <span class="text-slate-600">${nameHtml(t.fromId, t.fromName)} ➔ ${nameHtml(t.toId, t.toName)} · <b>${money(t.amount)}</b></span>
-          ${canDelete ? `<button onclick="deleteTransfer(${jsArg(t.transferId)})" class="text-rose-500 font-black" title="ยกเลิกรายการโอน">✕</button>` : ''}
+          <span class="flex items-center gap-2 shrink-0">
+            ${attachBtnHtml('transfer', t.transferId, `โอน ${t.fromName} ➔ ${t.toName} ${money(t.amount)}`)}
+            ${canDelete ? `<button onclick="deleteTransfer(${jsArg(t.transferId)})" class="text-rose-500 font-black" title="ยกเลิกรายการโอน">✕</button>` : ''}
+          </span>
         </div>`;
     }).join('');
   }
@@ -1089,3 +1099,153 @@ window.addEventListener('click', function () {
   const section = document.getElementById('trip-members-section');
   if (section && section.classList.contains('show')) section.classList.remove('show');
 });
+
+// ---------- photos (attachments) of bills, deposits and transfers ----------
+// Photos live in a private Drive folder; the server sends the bytes only to trip members.
+// The phone shrinks every photo to a JPEG (long side ATTACH_MAX_SIDE) before sending, one request per photo.
+const ATTACH_MAX = 5;
+const ATTACH_MAX_SIDE = 1280;
+const ATTACH_MAX_BYTES = 2 * 1024 * 1024;
+let attachCtx = null;           // { type, refId, title } of the open photo sheet
+let attachUploading = false;
+const attachImages = {};        // attId → data URL (kept while the app is open)
+
+function attachList(type, refId) {
+  return ((globalTripData && globalTripData.attachments) || {})[`${type}:${refId}`] || [];
+}
+
+function attachBtnHtml(type, refId, title) {
+  const n = attachList(type, refId).length;
+  return `<button type="button" onclick="openAttachments(${jsArg(type)}, ${jsArg(refId)}, ${jsArg(title)})" class="btn btn-xs bg-white border border-slate-300 text-slate-700 font-bold rounded-lg text-[10px] px-2 min-h-0 h-6" title="รูปแนบ">📎 ${n || '+'}</button>`;
+}
+
+function openAttachments(type, refId, title) {
+  attachCtx = { type, refId, title };
+  renderAttachSheet();
+  openBottomSheet('modal-attachments');
+}
+
+function renderAttachSheet() {
+  if (!attachCtx) return;
+  const list = attachList(attachCtx.type, attachCtx.refId);
+  const me = currentUser ? currentUser.id : '';
+  document.getElementById('att-title').innerText = `📎 รูปแนบ · ${attachCtx.title || ''}`;
+  document.getElementById('att-count').innerText = `${list.length} / ${ATTACH_MAX} รูป · แตะรูปเพื่อดูเต็มจอ`;
+  const tiles = list.map((a) => `
+    <div class="att-tile" onclick="viewAttachment(${jsArg(a.id)})">
+      <img id="att-img-${escapeHtml(a.id)}" class="att-img" alt="">
+      ${isHost() || a.createdBy === me ? `<button type="button" class="att-del" onclick="event.stopPropagation(); deleteAttachmentPhoto(${jsArg(a.id)})" title="ลบรูป">🗑</button>` : ''}
+      <span class="att-who">${escapeHtml(a.createdByName || '')}</span>
+    </div>`);
+  if (list.length < ATTACH_MAX && !attachUploading) {
+    tiles.push(`<button type="button" class="att-add" onclick="pickAttachmentFiles()"><span>＋</span>เพิ่มรูป</button>`);
+  }
+  document.getElementById('att-grid').innerHTML = tiles.join('');
+  list.forEach((a) => loadAttachImage(a.id));
+}
+
+function loadAttachImage(attId) {
+  const show = () => { const img = document.getElementById(`att-img-${attId}`); if (img) img.src = attachImages[attId]; };
+  if (attachImages[attId]) return show();
+  api('getAttachmentImage', { attId }).then((res) => {
+    if (!res || !res.success) return;
+    attachImages[attId] = `data:image/jpeg;base64,${res.data}`;
+    show();
+  }).catch(quiet);
+}
+
+function viewAttachment(attId) {
+  if (!attachImages[attId]) return;          // still loading
+  Swal.fire({ imageUrl: attachImages[attId], imageAlt: 'รูปแนบ', showConfirmButton: false, showCloseButton: true, width: '95%', padding: '0.5rem' });
+}
+
+function deleteAttachmentPhoto(attId) {
+  confirmDanger('ลบรูปนี้?', 'ลบแล้วกู้คืนไม่ได้', 'ลบรูป').then((ok) => {
+    if (ok) runWrite('deleteAttachment', { attId }, () => reloadTripDashboard().then(renderAttachSheet));
+  });
+}
+
+function pickAttachmentFiles() {
+  if (holdWhileTripUpdating()) return;
+  document.getElementById('att-file').click();
+}
+
+function onAttachFilesPicked(input) {
+  const files = Array.from(input.files || []);
+  input.value = '';                           // picking the same photo again still fires onchange
+  if (files.length) uploadAttachmentFiles(files);
+}
+
+// Sends the picked photos one by one (only as many as still fit); stops at the first problem and says which photo.
+async function uploadAttachmentFiles(files) {
+  if (!attachCtx || attachUploading || holdWhileTripUpdating()) return;
+  const { type, refId } = attachCtx;
+  const room = ATTACH_MAX - attachList(type, refId).length;
+  const todo = files.slice(0, Math.max(0, room));
+  if (!todo.length) return;
+  attachUploading = true;
+  renderAttachSheet();
+  try {
+    for (let i = 0; i < todo.length; i++) {
+      setAttachProgress(i, todo.length, files.length > room ? `แนบได้อีก ${room} รูป จะอัป ${room} รูปแรก` : '');
+      let data;
+      try {
+        data = await shrinkToJpegBase64(todo[i]);
+      } catch (e) {
+        Swal.fire({ title: 'เปิดรูปนี้ไม่ได้', text: `"${todo[i].name}" — กรุณาใช้รูป JPG หรือ PNG`, icon: 'error' });
+        break;
+      }
+      const res = await api('addAttachment', { tripId: currentTripId, refType: type, refId, data }, { write: true });
+      if (!reportSaveResult(res)) break;
+    }
+  } catch (e) {
+    quiet(e);                                 // no answer: api() already told the user and reloads
+  } finally {
+    attachUploading = false;
+    setAttachProgress(null);
+    await reloadTripDashboard();
+    renderAttachSheet();
+  }
+}
+
+function setAttachProgress(done, total, note) {
+  const box = document.getElementById('att-progress');
+  box.classList.toggle('hidden', done === null);
+  if (done === null) return;
+  document.getElementById('att-progress-text').innerText = `กำลังอัปรูป ${done + 1}/${total} ...${note ? ' · ' + note : ''}`;
+  document.getElementById('att-progress-bar').style.width = `${Math.max(5, Math.round((done / total) * 100))}%`;
+}
+
+// Long side at most `max`, ratio kept, never enlarged.
+function fitSize(w, h, max) {
+  const scale = Math.min(1, max / Math.max(w, h));
+  return { w: Math.max(1, Math.round(w * scale)), h: Math.max(1, Math.round(h * scale)) };
+}
+
+function loadImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('cannot decode')); };
+    img.src = url;
+  });
+}
+
+// Photo file → base64 JPEG (no data: prefix) of at most ATTACH_MAX_BYTES; quality steps down if needed.
+async function shrinkToJpegBase64(file) {
+  const img = await loadImageFile(file);
+  const { w, h } = fitSize(img.naturalWidth, img.naturalHeight, ATTACH_MAX_SIDE);
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';                     // transparent PNG → white, not black
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  for (const q of [0.7, 0.55, 0.4, 0.25]) {
+    const b64 = canvas.toDataURL('image/jpeg', q).split(',')[1];
+    if (b64.length * 3 / 4 <= ATTACH_MAX_BYTES) return b64;
+  }
+  throw new Error('still too big');
+}
