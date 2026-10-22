@@ -84,7 +84,9 @@ function confirmDanger(title, text, confirmText) {
   }).then((r) => r.isConfirmed);
 }
 
+let loadingSeq = 0;             // which loading cover is on screen (a background save closes only its own)
 function showLoading(title) {
+  loadingSeq++;
   Swal.fire({ title: title, allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
 }
 
@@ -147,9 +149,13 @@ function quiet(err) {
 // Every write goes through here: "กำลังบันทึก..." covers the screen until the answer (and the reload in
 // `after`) is in. Google can take 30 s+; without the cover people tap save again, which is a new request
 // and a second bill. A failure / uncertain answer replaces the cover with its own alert.
-// A saved copy of the trip is on screen: wait for the fresh one, so nobody saves from old numbers.
-// Returns true (and tells the user) when a save must wait.
+// A background save still running, or a saved copy of the trip on screen: wait, so nobody saves from
+// old numbers or twice. Returns true (and tells the user) when a save must wait.
 function holdWhileTripUpdating() {
+  if (bgBusy()) {
+    Swal.fire({ title: 'รอสักครู่', text: 'รายการก่อนหน้ายังบันทึกอยู่ (ดูแถบด้านบน) เสร็จแล้วกดบันทึกอีกครั้ง', icon: 'info' });
+    return true;
+  }
   if (!currentTripId || tripDataFresh) return false;
   refreshTrip().catch(quiet);
   Swal.fire({ title: 'กำลังอัปเดตข้อมูล', text: 'รอสักครู่ให้ข้อมูลล่าสุดขึ้นก่อน แล้วกดบันทึกอีกครั้ง', icon: 'info' });
@@ -163,6 +169,81 @@ function runWrite(action, payload, after) {
     if (!reportSaveResult(res)) return;
     return Promise.resolve(after && after(res)).then(() => { if (Swal.isLoading()) Swal.close(); });
   }).catch(quiet);
+}
+
+// ---------- background saves ----------
+// Bill, money received, pay notice + slip, photos: Google can take 30 s+, so the cover only shows the tap
+// went out (BG_COVER_MS, or less when Google answers sooner) and the rest runs behind a bar at the top.
+// Other saves wait meanwhile (holdWhileTripUpdating). The labels are also kept on the phone: a save cut
+// off by closing the app is reported at the next start, never resent (its result may be in already).
+const BG_COVER_MS = 3000;
+const PENDING_KEY = "travelsync_pending";
+const bgJobs = {};             // job id → label ("บันทึกบิล ...")
+let bgJobSeq = 0;
+let bgBarSeq = 0;
+
+function bgBusy() {
+  return Object.keys(bgJobs).length > 0;
+}
+
+function bgStart(label) {
+  const id = ++bgJobSeq;
+  bgJobs[id] = label;
+  storageSet(PENDING_KEY, Object.values(bgJobs));
+  renderBgBar(false);
+  return id;
+}
+
+function bgSetLabel(id, label) {
+  if (!(id in bgJobs)) return;
+  bgJobs[id] = label;
+  renderBgBar(false);
+}
+
+function bgEnd(id, ok) {
+  delete bgJobs[id];
+  if (bgBusy()) storageSet(PENDING_KEY, Object.values(bgJobs)); else storageRemove(PENDING_KEY);
+  renderBgBar(ok);
+}
+
+// "⏳ กำลัง..." while jobs run; "✅ บันทึกแล้ว" for 2 s after a good finish; hidden otherwise.
+function renderBgBar(justSaved) {
+  const bar = document.getElementById('bg-save-bar');
+  const labels = Object.values(bgJobs);
+  const shown = ++bgBarSeq;
+  if (labels.length) {
+    bar.innerText = labels.length === 1 ? `⏳ กำลัง${labels[0]}...` : `⏳ กำลังบันทึก ${labels.length} รายการ...`;
+  } else if (justSaved) {
+    bar.innerText = '✅ บันทึกแล้ว';
+    setTimeout(() => { if (shown === bgBarSeq) bar.classList.add('hidden'); }, 2000);
+  }
+  bar.classList.toggle('hidden', !labels.length && !justSaved);
+}
+
+// Like runWrite, but the cover closes early; `after(res, job)` may relabel the bar with bgSetLabel.
+function runWriteBackground(action, payload, after, label) {
+  if (holdWhileTripUpdating()) return Promise.resolve();
+  showLoading('กำลังบันทึก...');
+  const cover = loadingSeq;
+  const closeCover = () => { if (cover === loadingSeq && Swal.isLoading()) Swal.close(); };
+  setTimeout(closeCover, BG_COVER_MS);
+  const job = bgStart(label);
+  let ok = false;
+  return api(action, payload, { write: true }).then((res) => {
+    if (!reportSaveResult(res)) return;
+    closeCover();
+    return Promise.resolve(after && after(res, job)).then(() => { ok = true; });
+  }).catch(quiet).finally(() => bgEnd(job, ok));
+}
+
+function warnUnsentJobs() {
+  const unsent = storageGet(PENDING_KEY);
+  storageRemove(PENDING_KEY);
+  if (!Array.isArray(unsent) || !unsent.length) return;
+  Swal.fire({
+    title: 'มีรายการที่อาจยังไม่ได้บันทึก', icon: 'warning',
+    text: `แอปถูกปิดตอนกำลังส่ง: ${unsent.join(', ')} — กรุณาตรวจว่ารายการขึ้นแล้วหรือยัง ก่อนบันทึกซ้ำ`
+  });
 }
 
 // ---------- phone storage ----------
@@ -222,6 +303,7 @@ window.addEventListener('DOMContentLoaded', function () {
     saveSession(saved.token, saved.user);
     switchToView('view-trips');
     renderTripsList();
+    warnUnsentJobs();
   }
   loadInitialUserData();
 });
@@ -1078,12 +1160,16 @@ function submitTab1Expense() {
       return Swal.fire('ยอดไม่ตรง', `ยอดรายคนรวม ${sum.toLocaleString()} บาท ไม่เท่ากับยอดบิล ${amt.toLocaleString()} บาท`, 'warning');
     }
   }
+  if (holdWhileTripUpdating()) return;            // sheet stays open with what was typed
   closeBottomSheet('modal-add-tab1');
-  runWrite('addExpenseNew', { tripId: currentTripId, note, category, totalAmount: amt, payerId, splits }, () => {
-    document.getElementById('t1-amount').value = '';
-    document.getElementById('t1-note').value = '';
+  return runWriteBackground('addExpenseNew', { tripId: currentTripId, note, category, totalAmount: amt, payerId, splits }, () => {
+    // a next bill typed while this one saved is left alone
+    if (document.getElementById('t1-note').value.trim() === note) {
+      document.getElementById('t1-amount').value = '';
+      document.getElementById('t1-note').value = '';
+    }
     return reloadTripDashboard();
-  });
+  }, `บันทึกบิล "${note}"`);
 }
 
 function deleteTab1Bill(billId) {
@@ -1205,11 +1291,14 @@ function submitPayNotice() {
   if (holdWhileTripUpdating()) return;            // sheet stays open: the picked slip is not lost
   const slip = pickedPhotos.slip;
   closeBottomSheet('modal-pay');
-  return runWrite('notifyTransfer', { tripId: currentTripId, toId, amount }, async (res) => {
+  return runWriteBackground('notifyTransfer', { tripId: currentTripId, toId, amount }, async (res, job) => {
     clearPickedPhoto('slip');
-    if (slip && res.transferId) await attachSlip(res.transferId, slip);
+    if (slip && res.transferId) {
+      bgSetLabel(job, 'อัปสลิป');
+      await attachSlip(res.transferId, slip);
+    }
     return reloadTripDashboard();
-  });
+  }, `แจ้งโอน ${money(amount)}`);
 }
 
 // The announcement is saved already: a slip that fails only gets a warning (it can be added with 📎).
@@ -1235,8 +1324,9 @@ function submitReceived() {
   const fromId = document.getElementById('recv-from-id').value;
   const amount = parseFloat(document.getElementById('recv-amount').value);
   if (!(amount > 0)) return Swal.fire('แจ้งเตือน', 'กรุณาระบุยอดที่ได้รับมากกว่า 0', 'warning');
+  if (holdWhileTripUpdating()) return;
   closeBottomSheet('modal-receive');
-  return runWrite('confirmTransfer', { tripId: currentTripId, fromId, amount }, reloadTripDashboard);
+  return runWriteBackground('confirmTransfer', { tripId: currentTripId, fromId, amount }, reloadTripDashboard, 'บันทึกรับเงิน');
 }
 
 // Receiver closes the payer's announcement.
@@ -1249,7 +1339,7 @@ function confirmAnnounced(transferId) {
     text: `${t.fromName} แจ้งโอน ${money(t.amount)}${slips ? ` (มีสลิป ${slips} รูป ดูได้ที่ 📎)` : ''} — เช็คว่าเงินเข้าแล้วก่อนกดยืนยัน`,
     confirmButtonText: 'ได้รับแล้ว ✅', cancelButtonText: 'ยังไม่ได้รับ'
   }).then((r) => {
-    if (r.isConfirmed) return runWrite('confirmTransfer', { tripId: currentTripId, transferId }, reloadTripDashboard);
+    if (r.isConfirmed) return runWriteBackground('confirmTransfer', { tripId: currentTripId, transferId }, reloadTripDashboard, 'ยืนยันรับเงิน');
   });
 }
 
@@ -1478,9 +1568,12 @@ async function uploadAttachmentFiles(files) {
   if (!todo.length) return;
   attachUploading = true;
   renderAttachSheet();
+  const job = bgStart(`อัปรูป 1/${todo.length}`);    // the sheet can be closed: the bar shows the upload
+  let uploaded = 0;
   try {
     for (let i = 0; i < todo.length; i++) {
       setAttachProgress(i, todo.length, files.length > room ? `แนบได้อีก ${room} รูป จะอัป ${room} รูปแรก` : '');
+      bgSetLabel(job, `อัปรูป ${i + 1}/${todo.length}`);
       let data;
       try {
         data = await shrinkToJpegBase64(todo[i]);
@@ -1490,6 +1583,7 @@ async function uploadAttachmentFiles(files) {
       }
       const res = await api('addAttachment', { tripId: currentTripId, refType: type, refId, data }, { write: true });
       if (!reportSaveResult(res)) break;
+      uploaded++;
     }
   } catch (e) {
     quiet(e);                                 // no answer: api() already told the user and reloads
@@ -1498,6 +1592,7 @@ async function uploadAttachmentFiles(files) {
     setAttachProgress(null);
     await reloadTripDashboard();
     renderAttachSheet();
+    bgEnd(job, uploaded === todo.length);
   }
 }
 
