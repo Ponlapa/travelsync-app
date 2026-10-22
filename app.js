@@ -9,7 +9,7 @@ const BACKENDS = {
 };
 const APP_ENV = (typeof location !== 'undefined' && new URLSearchParams(location.search).get('env') === 'staging') ? 'staging' : 'prod';
 const WEB_APP_URL = BACKENDS[APP_ENV];
-const APP_CLIENT_VERSION = 2;
+const APP_CLIENT_VERSION = 3;          // 3: payer announces a transfer, receiver confirms it; payment QR
 const SESSION_KEY = "travelsync_session";
 const USERS_KEY = "travelsync_users";   // login list from the last visit, shown before Google answers
 const TRIP_KEY = "travelsync_trip_";    // + userId_tripId: last trip data, shown while the fresh one loads
@@ -271,10 +271,12 @@ function handleUserLoginSubmit() {
   }).catch(quiet);
 }
 
+// Missing QR / phone are asked at once; the phone sheet comes later in the page, so it sits on top.
 function afterLogin(res) {
   saveSession(res.token, res.user);
   switchToView('view-trips');
   renderTripsList();
+  if (res.needsQr) openQrSheet(true);
   if (res.needsPhone) openBottomSheet('modal-need-phone');
 }
 
@@ -295,14 +297,21 @@ function handleRegisterUserSubmit() {
   if (!name || !icon) return Swal.fire('แจ้งเตือน', 'กรุณาใส่ชื่อและไอคอน', 'warning');
   if (!PIN_RE.test(pin)) return Swal.fire('แจ้งเตือน', 'PIN ต้องเป็นตัวเลข 4-6 หลัก', 'warning');
   if (!PHONE_RE.test(phone)) return Swal.fire('แจ้งเตือน', 'เบอร์โทรต้องเป็นรูปแบบ XXX-XXX-XXXX', 'warning');
+  const qr = pickedPhotos.reg;
+  if (!qr) return Swal.fire('แจ้งเตือน', 'กรุณาแนบรูป QR รับเงินของคุณ (เพื่อนจะสแกนตอนโอนเงินให้คุณ)', 'warning');
   const btn = document.getElementById('reg-submit-btn');
   btn.disabled = true;
-  api('addNewUser', { name, icon, pin, phone }, { write: true }).then((res) => {
+  // the account first, then the QR with its new session (a failed QR is asked again in the QR sheet)
+  return api('addNewUser', { name, icon, pin, phone }, { write: true }).then((res) => {
     btn.disabled = false;
     if (!reportSaveResult(res)) return;
     closeBottomSheet('modal-register-user');
     cachedUsers.push(res.user);
-    afterLogin(res);
+    saveSession(res.token, res.user);
+    return saveQr(qr).then((ok) => {
+      if (ok) clearPickedPhoto('reg');
+      afterLogin({ ...res, needsQr: !ok });
+    });
   }).catch((e) => { btn.disabled = false; quiet(e); });
 }
 
@@ -310,6 +319,96 @@ function submitNeedPhone() {
   const phone = document.getElementById('need-phone-input').value.trim();
   if (!PHONE_RE.test(phone)) return Swal.fire('แจ้งเตือน', 'เบอร์โทรต้องเป็นรูปแบบ XXX-XXX-XXXX', 'warning');
   runWrite('setMyPhone', { phone }, () => closeBottomSheet('modal-need-phone'));
+}
+
+// ---------- payment QR + slip photos picked in a form ----------
+// The phone shrinks the photo at once (same JPEG rules as attachments) and shows it; it is sent with the form.
+const pickedPhotos = {};        // 'reg' (sign-up QR) | 'qr' (QR sheet) | 'slip' (pay sheet) → base64 JPEG
+let qrSheetRequired = false;    // true = no QR yet: the sheet cannot be closed until one is saved
+let qrSheetOpen = false;
+
+function pickPhoto(key) {
+  document.getElementById(`${key}-photo-file`).click();
+}
+
+async function onPhotoPicked(input, key) {
+  const file = (input.files || [])[0];
+  input.value = '';
+  if (!file) return;
+  try {
+    pickedPhotos[key] = await shrinkToJpegBase64(file);
+  } catch (e) {
+    delete pickedPhotos[key];
+    Swal.fire({ title: 'เปิดรูปนี้ไม่ได้', text: `"${file.name}" — กรุณาใช้รูป JPG หรือ PNG`, icon: 'error' });
+  }
+  showPhotoPreview(key, pickedPhotos[key] ? `data:image/jpeg;base64,${pickedPhotos[key]}` : '');
+}
+
+function showPhotoPreview(key, src) {
+  const img = document.getElementById(`${key}-photo-preview`);
+  if (src) img.src = src; else img.removeAttribute('src');
+  img.classList.toggle('hidden', !src);
+}
+
+function clearPickedPhoto(key) {
+  delete pickedPhotos[key];
+  showPhotoPreview(key, '');
+}
+
+// Resolves true when the QR is stored; a refusal or no answer has already been shown to the user.
+function saveQr(data) {
+  showLoading('กำลังบันทึก QR...');
+  return api('setMyQr', { data }, { write: true }).then((res) => {
+    if (!reportSaveResult(res)) return false;
+    Swal.close();
+    return true;
+  }).catch((e) => { quiet(e); return false; });
+}
+
+// required: asked after login / sign-up (no way out but saving, or logging out) · otherwise: the QR button.
+function openQrSheet(required) {
+  qrSheetRequired = required;
+  clearPickedPhoto('qr');
+  document.getElementById('qr-sheet-title').innerText = required ? '📷 แนบ QR รับเงินของคุณ' : '📷 QR รับเงินของฉัน';
+  document.getElementById('qr-sheet-note').innerText = required
+    ? 'เพื่อนจะเห็น QR นี้ตอนกด "จ่ายเงิน" ให้คุณ · ต้องแนบก่อนใช้งาน'
+    : 'เปลี่ยนได้ทุกเมื่อ · เพื่อนในทริปเห็นเฉพาะตอนกดจ่ายเงินให้คุณ';
+  document.getElementById('qr-sheet-close').classList.toggle('hidden', required);
+  document.getElementById('qr-sheet-logout').classList.toggle('hidden', !required);
+  qrSheetOpen = true;
+  openBottomSheet('modal-qr');
+  if (!required) loadMyQr();
+}
+
+function closeQrSheet() {
+  if (qrSheetRequired) return;
+  qrSheetOpen = false;
+  closeBottomSheet('modal-qr');
+}
+
+// The QR saved now, shown until a new one is picked.
+function loadMyQr() {
+  api('getUserQr', { userId: currentUser.id }).then((res) => {
+    if (res && res.success && !pickedPhotos.qr) showPhotoPreview('qr', `data:image/jpeg;base64,${res.data}`);
+  }).catch(quiet);
+}
+
+function submitQrSheet() {
+  const data = pickedPhotos.qr;
+  if (!data) return Swal.fire('แจ้งเตือน', 'กรุณาเลือกรูป QR รับเงินก่อน', 'warning');
+  return saveQr(data).then((ok) => {
+    if (!ok) return;
+    qrSheetRequired = false;
+    clearPickedPhoto('qr');
+    closeQrSheet();
+    Swal.fire({ title: 'บันทึก QR แล้ว', icon: 'success', timer: 1500, showConfirmButton: false });
+  });
+}
+
+function logoutFromQrSheet() {
+  qrSheetRequired = false;
+  closeQrSheet();
+  backToLogin();
 }
 
 function openForgotPin() {
@@ -348,6 +447,7 @@ function renderTripsList() {
   document.getElementById('current-user-badge').innerText = `${currentUser.icon || '👤'} ${currentUser.name}`;
   return api('getAllTrips').then((res) => {
     if (!reportSaveResult(res)) return;
+    if (res.needsQr && !qrSheetOpen) openQrSheet(true);
     const container = document.getElementById('trips-list-container');
     const trips = res.trips || [];
     if (!trips.length) {
@@ -802,33 +902,51 @@ function renderTab3() {
   if (data.awaitingDeposits) {
     html += `<div class="text-[10px] text-amber-700 font-bold bg-amber-50 border border-amber-200 rounded-xl p-2">⏳ มีมัดจำ ${data.awaitingDeposits} โครงการที่ยังไม่บันทึกจ่ายวันจริง — ยังไม่นับในยอดนี้</div>`;
   }
+  // Payer: "จ่ายเงิน" (QR) → "แจ้งโอนแล้ว" stays on the line. Receiver: "ได้รับเงินแล้ว" is what lowers the debt.
   html += instructions.map((ins) => {
+    const pending = pendingTransfer(ins.fromId, ins.toId);
+    const amount = Number(ins.amount) || 0;
     let action = '';
     if (ins.fromId === me) {
-      action = `<button onclick="openTransferModal(${jsArg(ins.toId)}, ${Number(ins.amount) || 0})" class="btn btn-xs btn-success text-white font-black rounded-lg h-7 min-h-0">โอนแล้ว ✅</button>`;
+      action = pending
+        ? `<button type="button" disabled class="btn btn-xs xfer-sent font-black rounded-lg h-7 min-h-0">แจ้งโอนแล้ว ✓</button>`
+        : `<button onclick="openPayModal(${jsArg(ins.toId)}, ${amount})" class="btn btn-xs btn-success text-white font-black rounded-lg h-7 min-h-0">จ่ายเงิน 💸</button>`;
     } else if (ins.toId === me) {
-      action = `<span class="badge badge-info text-white text-[9px] font-black">รอรับเงิน</span>`;
+      action = pending
+        ? `${attachList('transfer', pending.transferId).length ? attachBtnHtml('transfer', pending.transferId, `สลิปจาก ${pending.fromName}`) : ''}
+           <button onclick="confirmAnnounced(${jsArg(pending.transferId)})" class="btn btn-xs btn-success text-white font-black rounded-lg h-7 min-h-0">ได้รับเงินแล้ว ✅</button>`
+        : `<button onclick="openReceiveModal(${jsArg(ins.fromId)}, ${amount})" class="btn btn-xs btn-outline btn-success font-black rounded-lg h-7 min-h-0">ได้รับเงินแล้ว ✅</button>`;
     }
+    const note = pending
+      ? `<div class="text-[10px] text-amber-700 font-bold mt-0.5">⏳ แจ้งโอน ${money(pending.amount)} แล้ว · รอ${ins.toId === me ? 'คุณ' : ' ' + nameHtml(ins.toId, ins.toName)} ยืนยัน</div>` : '';
     const highlight = ins.fromId === me || ins.toId === me ? 'border-primary bg-primary/5' : 'border-slate-200 bg-white';
     return `
       <div class="flex justify-between items-center gap-2 p-3 rounded-2xl border ${highlight} text-xs font-bold">
         <div class="min-w-0">
           <div class="text-slate-700">${nameHtml(ins.fromId, ins.fromName)} ➔ ${nameHtml(ins.toId, ins.toName)}</div>
           <div class="text-rose-600 font-black text-sm mt-0.5">${money(ins.amount)}</div>
+          ${note}
         </div>
-        ${action}
+        <div class="flex items-center gap-1.5 shrink-0">${action}</div>
       </div>`;
   }).join('');
 
   const history = data.transfers || [];
   if (history.length) {
-    html += `<div class="text-[11px] font-black text-slate-500 mt-3">🧾 ประวัติการโอนที่บันทึกแล้ว</div>`;
+    html += `<div class="text-[11px] font-black text-slate-500 mt-3">🧾 ประวัติการโอน</div>`;
     html += history.slice().reverse().map((t) => {
       const canDelete = isHost() || t.fromId === me || t.toId === me;
+      let state = '';
+      if (t.status === 'Pending') {
+        state = t.toId === me
+          ? `<button onclick="confirmAnnounced(${jsArg(t.transferId)})" class="btn btn-xs btn-success text-white font-black rounded-lg h-6 min-h-0 text-[10px] px-2">ยืนยันรับ</button>`
+          : `<span class="badge badge-warning text-[9px] font-black">รอยืนยัน</span>`;
+      }
       return `
         <div class="flex justify-between items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-bold">
           <span class="text-slate-600">${nameHtml(t.fromId, t.fromName)} ➔ ${nameHtml(t.toId, t.toName)} · <b>${money(t.amount)}</b></span>
           <span class="flex items-center gap-2 shrink-0">
+            ${state}
             ${attachBtnHtml('transfer', t.transferId, `โอน ${t.fromName} ➔ ${t.toName} ${money(t.amount)}`)}
             ${canDelete ? `<button onclick="deleteTransfer(${jsArg(t.transferId)})" class="text-rose-500 font-black" title="ยกเลิกรายการโอน">✕</button>` : ''}
           </span>
@@ -836,6 +954,11 @@ function renderTab3() {
     }).join('');
   }
   box.innerHTML = html;
+}
+
+// The payer's open announcement on this pair, if any.
+function pendingTransfer(fromId, toId) {
+  return ((globalTripData && globalTripData.transfers) || []).find((t) => t.status === 'Pending' && t.fromId === fromId && t.toId === toId);
 }
 
 function renderTab4() {
@@ -1022,24 +1145,116 @@ function deleteTab2Bill(depId) {
 }
 
 // ---------- money: transfers ----------
-function openTransferModal(toId, amount) {
-  const m = memberById(toId);
-  document.getElementById('xfer-to-id').value = toId;
-  document.getElementById('xfer-to-label').innerText = m ? `${m.icon || '👤'} ${m.name}` : toId;
-  document.getElementById('xfer-amount').value = (Number(amount) || 0).toFixed(2);
-  openBottomSheet('modal-transfer');
+// Payer: pay sheet with the receiver's QR → "แจ้งโอนแล้ว" (+ optional slip). Only the receiver's
+// "ได้รับเงินแล้ว" lowers the debt (server: notifyTransfer / confirmTransfer).
+const qrImages = {};            // userId → data URL (kept while the app is open)
+
+function memberText(id) {
+  const m = memberById(id);
+  return m ? `${m.icon || '👤'} ${m.name}` : id;
 }
 
-function submitTransfer() {
-  const toId = document.getElementById('xfer-to-id').value;
-  const amount = parseFloat(document.getElementById('xfer-amount').value);
+function openPayModal(toId, amount) {
+  document.getElementById('pay-to-id').value = toId;
+  document.getElementById('pay-to-label').innerText = memberText(toId);
+  document.getElementById('pay-to-label2').innerText = memberText(toId);
+  document.getElementById('pay-amount').value = (Number(amount) || 0).toFixed(2);
+  clearPickedPhoto('slip');
+  showPayQr(toId);
+  openBottomSheet('modal-pay');
+}
+
+// QR of a trip member, asked from the server only when the pay sheet opens.
+function showPayQr(userId) {
+  const img = document.getElementById('pay-qr-img');
+  const status = document.getElementById('pay-qr-status');
+  const show = () => {
+    img.src = qrImages[userId];
+    img.classList.remove('hidden');
+    status.classList.add('hidden');
+  };
+  img.removeAttribute('src');
+  img.classList.add('hidden');
+  status.classList.remove('hidden');
+  status.innerText = 'กำลังโหลด QR...';
+  if (qrImages[userId]) return show();
+  api('getUserQr', { tripId: currentTripId, userId }).then((res) => {
+    if (document.getElementById('pay-to-id').value !== userId) return;    // another pay sheet opened meanwhile
+    if (res && res.success) {
+      qrImages[userId] = `data:image/jpeg;base64,${res.data}`;
+      return show();
+    }
+    status.innerText = res && res.code === 'NO_QR'
+      ? `ยังไม่มี QR รับเงิน — ถามช่องทางโอนจาก ${memberText(userId)} ก่อนนะ`
+      : (res && res.error) || 'โหลด QR ไม่ได้';
+  }).catch((e) => {
+    status.innerText = 'โหลด QR ไม่ได้ ลองปิดแล้วเปิดใหม่';
+    quiet(e);
+  });
+}
+
+function viewPayQr() {
+  const src = qrImages[document.getElementById('pay-to-id').value];
+  if (src) Swal.fire({ imageUrl: src, imageAlt: 'QR รับเงิน', showConfirmButton: false, showCloseButton: true, width: '95%', padding: '0.5rem' });
+}
+
+function submitPayNotice() {
+  const toId = document.getElementById('pay-to-id').value;
+  const amount = parseFloat(document.getElementById('pay-amount').value);
   if (!(amount > 0)) return Swal.fire('แจ้งเตือน', 'กรุณาระบุยอดที่โอนมากกว่า 0', 'warning');
-  closeBottomSheet('modal-transfer');
-  runWrite('addTransfer', { tripId: currentTripId, toId, amount }, reloadTripDashboard);
+  if (holdWhileTripUpdating()) return;            // sheet stays open: the picked slip is not lost
+  const slip = pickedPhotos.slip;
+  closeBottomSheet('modal-pay');
+  return runWrite('notifyTransfer', { tripId: currentTripId, toId, amount }, async (res) => {
+    clearPickedPhoto('slip');
+    if (slip && res.transferId) await attachSlip(res.transferId, slip);
+    return reloadTripDashboard();
+  });
+}
+
+// The announcement is saved already: a slip that fails only gets a warning (it can be added with 📎).
+async function attachSlip(transferId, data) {
+  try {
+    const res = await api('addAttachment', { tripId: currentTripId, refType: 'transfer', refId: transferId, data }, { write: true });
+    if (res.success) return;
+    Swal.fire({ title: 'แจ้งโอนแล้ว แต่แนบสลิปไม่สำเร็จ', text: `${res.error || ''} — แนบใหม่ได้ที่ปุ่ม 📎 ในประวัติการโอน`, icon: 'warning' });
+  } catch (e) {
+    quiet(e);
+  }
+}
+
+// Receiver, no announcement (cash, part of the amount): records what came in.
+function openReceiveModal(fromId, amount) {
+  document.getElementById('recv-from-id').value = fromId;
+  document.getElementById('recv-from-label').innerText = memberText(fromId);
+  document.getElementById('recv-amount').value = (Number(amount) || 0).toFixed(2);
+  openBottomSheet('modal-receive');
+}
+
+function submitReceived() {
+  const fromId = document.getElementById('recv-from-id').value;
+  const amount = parseFloat(document.getElementById('recv-amount').value);
+  if (!(amount > 0)) return Swal.fire('แจ้งเตือน', 'กรุณาระบุยอดที่ได้รับมากกว่า 0', 'warning');
+  closeBottomSheet('modal-receive');
+  return runWrite('confirmTransfer', { tripId: currentTripId, fromId, amount }, reloadTripDashboard);
+}
+
+// Receiver closes the payer's announcement.
+function confirmAnnounced(transferId) {
+  const t = ((globalTripData && globalTripData.transfers) || []).find((x) => x.transferId === transferId);
+  if (!t) return;
+  const slips = attachList('transfer', transferId).length;
+  return Swal.fire({
+    title: 'ได้รับเงินแล้ว?', icon: 'question', showCancelButton: true,
+    text: `${t.fromName} แจ้งโอน ${money(t.amount)}${slips ? ` (มีสลิป ${slips} รูป ดูได้ที่ 📎)` : ''} — เช็คว่าเงินเข้าแล้วก่อนกดยืนยัน`,
+    confirmButtonText: 'ได้รับแล้ว ✅', cancelButtonText: 'ยังไม่ได้รับ'
+  }).then((r) => {
+    if (r.isConfirmed) return runWrite('confirmTransfer', { tripId: currentTripId, transferId }, reloadTripDashboard);
+  });
 }
 
 function deleteTransfer(transferId) {
-  confirmDanger('ยกเลิกรายการโอนนี้?', 'ใช้เมื่อกดผิด หรือเงินยังไม่ถึงจริง — ยอดที่ต้องโอนจะกลับมาเหมือนเดิม', 'ใช่, ยกเลิก').then((ok) => {
+  confirmDanger('ยกเลิกรายการโอนนี้?', 'ใช้เมื่อกดผิด ยอดผิด หรือเงินยังไม่ถึงจริง — ยอดที่ต้องโอนจะกลับมาเหมือนเดิม', 'ใช่, ยกเลิก').then((ok) => {
     if (!ok) return;
     runWrite('deleteTransfer', { transferId }, reloadTripDashboard);
   });
@@ -1099,6 +1314,84 @@ window.addEventListener('click', function () {
   const section = document.getElementById('trip-members-section');
   if (section && section.classList.contains('show')) section.classList.remove('show');
 });
+
+// ---------- pull down to refresh (trip list, and every screen of a trip) ----------
+// Starts only when the list under the finger is scrolled to the top and no sheet/popup is open.
+// The browser's own pull-to-refresh is switched off in CSS (overscroll-behavior), so this one is the only one.
+const PULL_READY = 70;          // px the indicator moves before letting go reloads
+const PULL_MAX = 90;
+const PULL_SCROLLERS = '#trips-list-container, #itinerary-timeline, #tab1-list-container, #tab2-list-container, #tab3-list-container, #tab4-list-container';
+let pullStartY = null;
+let pullScroller = null;        // the list under the finger (null = header area)
+let pullShift = 0;
+let pullBusy = false;
+
+// Finger travel → how far the indicator moves (half speed, like a rubber band) and whether a release reloads.
+function pullStep(dy) {
+  const shift = Math.min(Math.max(dy, 0) / 2, PULL_MAX);
+  return { shift, ready: shift >= PULL_READY };
+}
+
+function canStartPull(target) {
+  if (pullBusy || !currentUser || qrSheetOpen) return false;
+  if (document.querySelector('[id^="modal-"]:not(.hidden)') || (Swal.isVisible && Swal.isVisible())) return false;
+  const view = document.getElementById(currentTripId ? 'view-dashboard' : 'view-trips');
+  if (!view || view.classList.contains('hidden') || !view.contains(target)) return false;
+  const scroller = target.closest && target.closest(PULL_SCROLLERS);
+  return !scroller || scroller.scrollTop <= 0;
+}
+
+function setPullIndicator(shift, state) {
+  const box = document.getElementById('pull-indicator');
+  box.classList.toggle('pulling', state === 'pull');
+  box.classList.toggle('loading', state === 'loading');
+  box.style.opacity = shift > 4 ? '1' : '0';
+  box.style.transform = `translate(-50%, ${Math.round(shift - 50)}px)`;
+  document.getElementById('pull-spinner').style.transform = state === 'pull' ? `rotate(${Math.round(shift * 4)}deg)` : '';
+  document.getElementById('pull-text').innerText = state === 'loading' ? 'กำลังโหลดข้อมูลล่าสุด...'
+    : shift >= PULL_READY ? 'ปล่อยเพื่อรีเฟรช' : 'ดึงลงเพื่อรีเฟรช';
+}
+
+// In a trip: same reload as coming back to the app. On the trip list: the list again.
+function runPullRefresh() {
+  pullBusy = true;
+  setPullIndicator(PULL_READY, 'loading');
+  const job = currentTripId ? refreshTrip() : renderTripsList();
+  return Promise.resolve(job).catch(quiet).finally(() => {
+    pullBusy = false;
+    setPullIndicator(0, 'idle');
+  });
+}
+
+document.addEventListener('touchstart', (e) => {
+  pullStartY = e.touches.length === 1 && canStartPull(e.target) ? e.touches[0].clientY : null;
+  pullScroller = pullStartY === null ? null : e.target.closest && e.target.closest(PULL_SCROLLERS);
+  pullShift = 0;
+}, { passive: true });
+
+// Not passive: while pulling down at the top there is nothing to scroll, so the move is ours — taking it keeps
+// the moves coming at full rate (the browser slows them down once it treats the gesture as a scroll).
+// The list was scrolled meanwhile (finger went up first) → not a pull, the list scrolls normally.
+document.addEventListener('touchmove', (e) => {
+  if (pullStartY === null) return;
+  const dy = e.touches[0].clientY - pullStartY;
+  const atTop = !pullScroller || pullScroller.scrollTop <= 0;
+  if (dy > 0 && atTop && e.cancelable) e.preventDefault();
+  pullShift = atTop ? pullStep(dy).shift : 0;
+  setPullIndicator(pullShift, 'pull');
+}, { passive: false });
+
+// The lifted finger's position decides (a dropped move event never loses the pull).
+function endPull(e, cancelled) {
+  if (pullStartY === null) return;
+  const touch = e && e.changedTouches && e.changedTouches[0];
+  if (touch) pullShift = pullStep(touch.clientY - pullStartY).shift;
+  pullStartY = null;
+  if (!cancelled && pullShift >= PULL_READY) runPullRefresh();
+  else setPullIndicator(0, 'idle');
+}
+document.addEventListener('touchend', (e) => endPull(e, false));
+document.addEventListener('touchcancel', (e) => endPull(e, true));
 
 // ---------- photos (attachments) of bills, deposits and transfers ----------
 // Photos live in a private Drive folder; the server sends the bytes only to trip members.
